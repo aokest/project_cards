@@ -9,5 +9,4 @@ services:
       - ./project_timeline.html:/app/project_timeline.html
       - ./cardv8.html:/app/cardv8.html
       - ./projects:/app/projects
-      - ./reparse_v3.py:/app/reparse_v3.py
     restart: always
