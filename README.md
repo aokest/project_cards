@@ -42,9 +42,9 @@ python3 server.py
 
 ## 数据存储
 
-- 所有卡片数据存储在 `project_cards.json` 文件中。
-- 该文件已被 `.gitignore` 忽略，确保数据隐私。
-- 请定期备份该文件。
+- 本地数据存储在 `project_cards.json`（已被 `.gitignore` 忽略，不会提交远端）。
+- 测试/脱敏数据位于 `env/test/project_cards.json`（默认 `[]`），通过 `docker-compose.test.yml` 挂载到容器中。
+- 请定期备份本地 `project_cards.json`。
 
 ## 配置管理
 
@@ -60,11 +60,26 @@ python3 server.py
 ├── index.html           # 项目列表页
 ├── project_timeline.html # 时间轴视图
 ├── server.py            # 轻量级 Python 后端
-├── docs/                # 项目文档
+├── docs/                # 项目文档（含开发规范）
+│   ├── 00-项目说明.md
+│   ├── 01-开发规范.md
 ├── projects/            # 示例或导入的 Markdown 文件
-├── project_cards.json   # 数据存储（自动生成，不提交）
+├── project_cards.json   # 本地数据（自动生成，不提交）
+├── env/test/project_cards.json # 测试/脱敏数据（空）
+├── docker-compose.test.yml     # 测试环境 Compose（端口 18898）
 └── .gitignore           # Git 忽略配置
 ```
+
+## 测试环境（脱敏）
+
+启动一个不含真实数据的测试环境：
+
+```bash
+docker compose -f docker-compose.test.yml up -d
+# 访问 http://localhost:18898/
+```
+
+该环境会挂载 `env/test/project_cards.json`（默认空数组），用于功能验证与对外同步代码前的脱敏测试。
 
 ## 扩展开发
 
