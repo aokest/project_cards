@@ -270,32 +270,40 @@
         };
 
         // --- 4. 主布局组件：ProjectCard (恢复左右结构 + 底部双栏) ---
-        const ProjectCard = ({ data, styles, sectionConfigs, selectedSection, actions }) => {
-            return (
-                <div 
-                    className="w-[1920px] h-[1080px] relative overflow-hidden flex flex-col p-8 box-border shadow-2xl transition-colors duration-500"
-                    style={{ 
-                        backgroundColor: styles.cardBg,
-                        backgroundImage: `linear-gradient(135deg, ${styles.cardBg} 0%, ${styles.accentColor}20 100%)`
-                    }}
-                    onClick={(e) => { e.stopPropagation(); actions.selectSection(null); }}
-                >
-                    {/* Subtle Texture Overlay */}
-                    <div className="absolute inset-0 opacity-[0.4] pointer-events-none" style={{
-                        backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.08'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
-                    }}></div>
+    const ProjectCard = ({ data, styles, sectionConfigs, selectedSection, actions, parentProjectName }) => {
+        return (
+            <div 
+                className="w-[1920px] h-[1080px] relative overflow-hidden flex flex-col p-8 box-border shadow-2xl transition-colors duration-500"
+                style={{ 
+                    backgroundColor: styles.cardBg,
+                    backgroundImage: `linear-gradient(135deg, ${styles.cardBg} 0%, ${styles.accentColor}20 100%)`
+                }}
+                onClick={(e) => { e.stopPropagation(); actions.selectSection(null); }}
+            >
+                {/* Subtle Texture Overlay */}
+                <div className="absolute inset-0 opacity-[0.4] pointer-events-none" style={{
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.08'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+                }}></div>
 
-                    <div className="absolute top-0 right-0 w-[800px] h-[800px] rounded-full opacity-[0.03] blur-3xl pointer-events-none" style={{ backgroundColor: styles.themeColor }}></div>
-                    <div className="absolute top-12 bottom-12 left-0 w-3 rounded-r-xl" style={{ backgroundColor: styles.themeColor }}></div>
-                    
-                    <header className="flex items-end gap-6 pb-6 border-b-2 mb-6 shrink-0" style={{ borderColor: `${styles.themeColor}20` }}>
-                        <h1 className="text-5xl font-black tracking-tighter leading-none flex-1 truncate" style={{ color: styles.textColor }}>
+                <div className="absolute top-0 right-0 w-[800px] h-[800px] rounded-full opacity-[0.03] blur-3xl pointer-events-none" style={{ backgroundColor: styles.themeColor }}></div>
+                <div className="absolute top-12 bottom-12 left-0 w-3 rounded-r-xl" style={{ backgroundColor: styles.themeColor }}></div>
+                
+                <header className="flex items-end gap-6 pb-6 border-b-2 mb-6 shrink-0" style={{ borderColor: `${styles.themeColor}20` }}>
+                    <div className="flex-1 truncate flex flex-col">
+                        <h1 className="text-5xl font-black tracking-tighter leading-none" style={{ color: styles.textColor }}>
                             {data['项目名称'] || '未命名项目'}
                         </h1>
-                        <div className="text-2xl font-mono font-bold border-2 px-5 py-2 rounded-lg opacity-80" style={{ borderColor: styles.textColor, color: styles.textColor }}>
-                            {data['项目编号'] || 'NO.0000'}
-                        </div>
-                    </header>
+                        {parentProjectName && (
+                            <div className="text-sm font-bold bg-blue-100 text-blue-800 px-2 py-1 rounded inline-flex items-center gap-1 mt-2 w-fit opacity-80" style={{ fontFamily: 'Noto Sans SC' }}>
+                                <Icon name="corner-up-left" size={14} />
+                                所属项目: {parentProjectName}
+                            </div>
+                        )}
+                    </div>
+                    <div className="text-2xl font-mono font-bold border-2 px-5 py-2 rounded-lg opacity-80" style={{ borderColor: styles.textColor, color: styles.textColor }}>
+                        {data['项目编号'] || 'NO.0000'}
+                    </div>
+                </header>
 
                     {/* 主布局：Grid 12 列 */}
                     <div className="flex-1 grid grid-cols-12 gap-5 min-h-0">
@@ -494,6 +502,10 @@
             const [cardList, setCardList] = useState([]);
             // Track the original ID of the currently edited card to support renaming/overwriting
             const [activeCardId, setActiveCardId] = useState(null);
+            
+            // Parent Project Context
+            const [parentProjectName, setParentProjectName] = useState(null);
+            const [parentProjectId, setParentProjectId] = useState(null);
 
             useEffect(() => {
                 if (!rawText) return;
@@ -717,18 +729,13 @@
                 // Store parentId if provided
                 if (parentId) {
                     console.log("Associated with Parent Project:", parentId);
-                    // Fetch Parent Project Info to Display Context
+                    setParentProjectId(parentId);
+                    // Save to state to use in UI rendering, instead of DOM manipulation
+                    // We need a state for parentProjectName
                     fetch('/api/projects').then(r=>r.json()).then(projs => {
                         const p = projs.find(x => x.id === parentId);
                         if(p) {
-                            const header = document.querySelector('header .flex-1');
-                            if(header && !document.getElementById('parent-context-badge')) {
-                                const badge = document.createElement('div');
-                                badge.id = 'parent-context-badge';
-                                badge.className = 'text-xs text-blue-100 bg-blue-800/30 px-2 py-1 rounded inline-flex items-center gap-1 mt-1';
-                                badge.innerHTML = `<span>所属项目: ${p.meta.name}</span>`;
-                                header.appendChild(badge);
-                            }
+                           setParentProjectName(p.meta.name);
                         }
                     });
                 }
@@ -965,8 +972,15 @@
                                 <button onClick={actions.exportJSON} className="border border-gray-300 text-gray-700 py-2.5 rounded-lg hover:bg-gray-50 font-medium transition-colors flex items-center justify-center gap-2">
                                     <Icon name="download" size={16} /> 导出
                                 </button>
-                                <button onClick={()=>window.location.href='index.html'} className="border border-gray-300 text-gray-700 py-2.5 rounded-lg hover:bg-gray-50 font-medium transition-colors flex items-center justify-center gap-2">
-                                    <Icon name="home" size={16} /> 返回首页
+                                <button onClick={() => {
+                                    if (parentProjectId) {
+                                        window.location.href = `project_detail.html?id=${parentProjectId}`;
+                                    } else {
+                                        window.location.href = 'index.html';
+                                    }
+                                }} className="border border-gray-300 text-gray-700 py-2.5 rounded-lg hover:bg-gray-50 font-medium transition-colors flex items-center justify-center gap-2">
+                                    <Icon name={parentProjectId ? "corner-up-left" : "home"} size={16} /> 
+                                    {parentProjectId ? "返回项目" : "返回首页"}
                                 </button>
                             </div>
                         </div>
@@ -978,7 +992,7 @@
                             backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='1'/%3E%3C/svg%3E")`
                         }}></div>
                         <div style={{ transform: 'scale(0.65)', transformOrigin: 'center', boxShadow: '0 50px 100px -20px rgba(0, 0, 0, 0.25)' }}>
-                            <ProjectCard data={parsedData} styles={styles} sectionConfigs={sectionConfigs} selectedSection={selectedSection} actions={actions} />
+                            <ProjectCard data={parsedData} styles={styles} sectionConfigs={sectionConfigs} selectedSection={selectedSection} actions={actions} parentProjectName={parentProjectName} />
                         </div>
                     </div>
 
