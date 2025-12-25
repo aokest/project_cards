@@ -227,6 +227,25 @@
             }
         }
 
+        // Helper: Get Linked Cards (Shared Logic)
+        function getLinkedCards() {
+            if (!currentProject || !allCards) return [];
+            
+            const custPrefix = currentProject.meta.customerNo + '-';
+            const fullPrefix = `${currentProject.meta.customerNo}-${currentProject.meta.projectNo}-`;
+            
+            return allCards.filter(c => {
+                const cid = (c.cardId || '').toUpperCase();
+                // 1. Strict Match
+                if (cid.startsWith(fullPrefix)) return true;
+                // 2. Loose Match (Default Project)
+                if (cid.startsWith(custPrefix) && cid.match(new RegExp(`^${custPrefix}S\\d+`))) {
+                    return true;
+                }
+                return false;
+            });
+        }
+
         // Render Meta
         function renderMeta() {
             document.title = `${currentProject.meta.name} - 详情`;
@@ -249,25 +268,35 @@
             
             if (isAuto) {
                 // Calculate from cards
-                const prefix = `${currentProject.meta.customerNo}-${currentProject.meta.projectNo}`;
-                const linkedCards = allCards.filter(c => (c.cardId || '').startsWith(prefix));
+                const linkedCards = getLinkedCards();
                 
                 // Heuristic: Extract budget from card data '预算投入' field
-                // Example: "25万元" -> 250000
                 let totalIncome = 0;
                 
                 linkedCards.forEach(c => {
                     const budgetStr = (c.data && c.data['预算投入']) || '';
-                    // Extract numbers. Assume 万 as unit if not specified? 
-                    // Regex to find number before "万元" or just number
-                    const match = budgetStr.match(/(\d+(\.\d+)?)\s*万元?/);
-                    if (match) {
-                        totalIncome += parseFloat(match[1]) * 10000;
+                    if (!budgetStr) return;
+                    
+                    // Try match: "50万元", "50万", "500000", "50.5万"
+                    // Strategy: Find all numbers that are followed by "万" or "w"
+                    const wanMatches = [...budgetStr.matchAll(/(\d+(\.\d+)?)\s*[万wW]/g)];
+                    if (wanMatches.length > 0) {
+                        wanMatches.forEach(m => totalIncome += parseFloat(m[1]) * 10000);
+                    } else {
+                        // Fallback: Check for "元" without "万"
+                        // Or just numbers if the field is purely numeric?
+                        // Let's match typical patterns like "总额 500000"
+                        // But usually people write "50万". 
+                        // If no "万" found, look for large numbers > 1000?
+                        // Let's keep it safe: Only count explicitly marked "万" or pure number if field is short.
+                        if (/^\d+(\.\d+)?$/.test(budgetStr.trim())) {
+                            totalIncome += parseFloat(budgetStr.trim());
+                        }
                     }
                 });
                 
                 document.getElementById('f-income').value = totalIncome;
-                document.getElementById('f-cost').value = 0; // Cost is usually internal, not on card
+                document.getElementById('f-cost').value = 0; 
                 document.getElementById('f-income').disabled = true;
                 document.getElementById('f-cost').disabled = true;
                 document.getElementById('f-income').classList.add('bg-gray-100', 'text-gray-500');

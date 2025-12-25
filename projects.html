@@ -223,8 +223,13 @@
                             <h3 class="text-lg font-bold text-gray-900 line-clamp-1 group-hover:text-blue-600 transition-colors">${p.meta.name}</h3>
                             <p class="text-sm text-gray-500 font-mono mt-1">${p.meta.contractNo || '无合同编号'}</p>
                         </div>
-                        <div class="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors">
-                            <i data-lucide="chevron-right" class="w-5 h-5"></i>
+                        <div class="flex items-center gap-2">
+                            <button onclick="event.stopPropagation(); deleteProject('${p.id}')" class="text-red-300 hover:text-red-500 p-1" title="删除项目">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                            <a href="project_detail.html?id=${p.id}" onclick="event.stopPropagation()" class="text-blue-600 hover:text-blue-800 font-medium text-sm flex items-center gap-1 group-hover:underline">
+                                详情 <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                            </a>
                         </div>
                     </div>
                     
@@ -337,6 +342,29 @@
 
         // Search Listener
         document.getElementById('search-input').addEventListener('input', renderProjects);
+
+        // Delete Project
+        async function deleteProject(id) {
+            if (!confirm('确定要删除这个项目吗？所有关联信息将丢失（卡片数据保留，但解除关联）。')) return;
+            
+            const newProjects = projects.filter(p => p.id !== id);
+            try {
+                const res = await fetch('/api/projects', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newProjects)
+                });
+                if (res.ok) {
+                    projects = newProjects;
+                    renderProjects();
+                    updateStats();
+                } else {
+                    alert('删除失败');
+                }
+            } catch(e) {
+                alert('网络错误');
+            }
+        }
 
         // Init
         loadData();

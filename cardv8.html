@@ -763,6 +763,15 @@
                                 // Find latest or by ID
                                 const urlParams = new URLSearchParams(window.location.search);
                                 const id = urlParams.get('id');
+                                const projectPrefix = urlParams.get('projectPrefix');
+                                
+                                // If creating new card (prefix exists, id missing), DO NOT load historical data
+                                if (!id && projectPrefix) {
+                                    // Keep EMPTY_TEMPLATE
+                                    console.log("Creating new card, skipping historical data load");
+                                    return; 
+                                }
+
                                 const target = id ? list.find(c => c.cardId === id || c.id === id) : list[list.length - 1]; // Default to latest
                                 
                                 if (target) {
