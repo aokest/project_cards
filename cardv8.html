@@ -68,29 +68,19 @@
 
         // --- 1. 常量与配置 ---
         const STORAGE_KEY = 'project_cards_v9_final';
-        const DEFAULT_TEXT = [
-            '项目编号：1205-S1-S03',
-            '项目名称：模拟黑客入侵检查',
-            '项目目标：通过模拟黑客攻击，先于黑客主动发现潜在的高风险漏洞与防御盲区，推动纳入紧急修复清单（“红灯计划”），实现风险的超前识别与闭环处置。',
+        const EMPTY_TEMPLATE = [
+            '项目编号：',
+            '项目名称：',
+            '项目目标：',
             '现状分析：',
-            '目前处于黑客事件后期，依然被二次攻击或其他黑客攻击的高概率覆盖。传统响应、修复、加固、自查的方式对于防御难以聚焦在最急迫的风险以及最重要的资产安全防护上。',
-            '项目周期：1月-2月期间，3周',
+            '项目周期：',
             '预算投入：',
-            '入侵模拟检查服务',
-            '8000元/人天，约70人天',
             '所需支持：',
-            '- [ ] 测试授权。',
-            '- [ ] 约定测试的核心业务资产。',
-            '- [ ] 安排反馈业务情况及修复。',
             '项目内容：',
-            '模拟真实攻击者思维与技术手段，尝试突破边界、横向移动、获取核心数据或权限。',
-            '记录攻击路径、利用漏洞及潜在危害，输出可操作的修复建议。',
-            '参与部门：信息安全部，IT运维部',
-            '相关产品及解决方案：入侵模拟检查服务、数字风洞健康管理平台',
-            '输出物：',
-            '《数字风洞健康体检报告》：包含攻击路径、风险详情、修复建议。',
-            '“红灯计划”清单：高伤害等级风险列表及修复优先级建议。'
-        ].join('\\n');
+            '参与部门：',
+            '相关产品及解决方案：',
+            '输出物：'
+        ].join('\n');
 
         // 字段映射配置
         const FIELD_CONFIG = {
@@ -481,7 +471,7 @@
 
         // --- 6. 根应用 App ---
         const App = () => {
-            const [rawText, setRawText] = useState(DEFAULT_TEXT);
+            const [rawText, setRawText] = useState(EMPTY_TEMPLATE);
             const [parsedData, setParsedData] = useState({});
             const [selectedSection, setSelectedSection] = useState(null);
             const [inputCardId, setInputCardId] = useState('');
@@ -776,7 +766,7 @@
                                 const target = id ? list.find(c => c.cardId === id || c.id === id) : list[list.length - 1]; // Default to latest
                                 
                                 if (target) {
-                                    setRawText(target.rawText || DEFAULT_TEXT);
+                                    setRawText(target.rawText || EMPTY_TEMPLATE);
                                     if (target.styles) setStyles(target.styles);
                                     if (target.sectionConfigs) setSectionConfigs(target.sectionConfigs);
                                     setActiveCardId(target.id);
@@ -802,7 +792,7 @@
                 const id = e.target.value;
                 const target = cardList.find(c => c.id === id || c.cardId === id);
                 if (target) {
-                    setRawText(target.rawText || DEFAULT_TEXT);
+                    setRawText(target.rawText || EMPTY_TEMPLATE);
                     if (target.styles) setStyles(target.styles);
                     if (target.sectionConfigs) setSectionConfigs(target.sectionConfigs);
                     setActiveCardId(target.id);

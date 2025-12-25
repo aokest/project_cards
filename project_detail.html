@@ -91,25 +91,32 @@
                             <input type="text" id="input-product" class="flex-1 bg-transparent outline-none min-w-[60px]" placeholder="输入回车" onkeydown="handleTagInput(event, 'product')">
                         </div>
                     </div>
-                    <div class="border-t pt-4 mt-2">
-                        <label class="block text-xs font-bold text-gray-500 uppercase mb-2">财务概览 (CNY)</label>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="text-xs text-gray-400">预计收入</label>
-                                <div class="relative">
-                                    <span class="absolute left-2 top-2 text-gray-400">¥</span>
-                                    <input type="number" id="f-income" class="w-full pl-6 p-2 border rounded text-sm bg-gray-50 focus:bg-white outline-none">
-                                </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-2">财务概览 (CNY)</label>
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-xs text-gray-400">自动聚合子卡片预算?</span>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" id="budget-auto-calc" class="sr-only peer" onchange="toggleBudgetMode()">
+                                    <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                                </label>
                             </div>
-                            <div>
-                                <label class="text-xs text-gray-400">预计成本</label>
-                                <div class="relative">
-                                    <span class="absolute left-2 top-2 text-gray-400">¥</span>
-                                    <input type="number" id="f-cost" class="w-full pl-6 p-2 border rounded text-sm bg-gray-50 focus:bg-white outline-none">
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="text-xs text-gray-400">预计收入</label>
+                                    <div class="relative">
+                                        <span class="absolute left-2 top-2 text-gray-400">¥</span>
+                                        <input type="number" id="f-income" class="w-full pl-6 p-2 border rounded text-sm bg-gray-50 focus:bg-white outline-none">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="text-xs text-gray-400">预计成本</label>
+                                    <div class="relative">
+                                        <span class="absolute left-2 top-2 text-gray-400">¥</span>
+                                        <input type="number" id="f-cost" class="w-full pl-6 p-2 border rounded text-sm bg-gray-50 focus:bg-white outline-none">
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
                 </div>
             </div>
 
@@ -237,11 +244,52 @@
             renderTags('product');
             
             // Finance
-            document.getElementById('f-income').value = currentProject.finance?.budgetIncome || 0;
-            document.getElementById('f-cost').value = currentProject.finance?.budgetCost || 0;
+            const isAuto = currentProject.finance?.budgetMode === 'auto_sum';
+            document.getElementById('budget-auto-calc').checked = isAuto;
+            
+            if (isAuto) {
+                // Calculate from cards
+                const prefix = `${currentProject.meta.customerNo}-${currentProject.meta.projectNo}`;
+                const linkedCards = allCards.filter(c => (c.cardId || '').startsWith(prefix));
+                
+                // Heuristic: Extract budget from card data '预算投入' field
+                // Example: "25万元" -> 250000
+                let totalIncome = 0;
+                
+                linkedCards.forEach(c => {
+                    const budgetStr = (c.data && c.data['预算投入']) || '';
+                    // Extract numbers. Assume 万 as unit if not specified? 
+                    // Regex to find number before "万元" or just number
+                    const match = budgetStr.match(/(\d+(\.\d+)?)\s*万元?/);
+                    if (match) {
+                        totalIncome += parseFloat(match[1]) * 10000;
+                    }
+                });
+                
+                document.getElementById('f-income').value = totalIncome;
+                document.getElementById('f-cost').value = 0; // Cost is usually internal, not on card
+                document.getElementById('f-income').disabled = true;
+                document.getElementById('f-cost').disabled = true;
+                document.getElementById('f-income').classList.add('bg-gray-100', 'text-gray-500');
+                document.getElementById('f-cost').classList.add('bg-gray-100', 'text-gray-500');
+            } else {
+                document.getElementById('f-income').value = currentProject.finance?.budgetIncome || 0;
+                document.getElementById('f-cost').value = currentProject.finance?.budgetCost || 0;
+                document.getElementById('f-income').disabled = false;
+                document.getElementById('f-cost').disabled = false;
+                document.getElementById('f-income').classList.remove('bg-gray-100', 'text-gray-500');
+                document.getElementById('f-cost').classList.remove('bg-gray-100', 'text-gray-500');
+            }
 
             // Deliverables
             renderDeliverables();
+        }
+
+        function toggleBudgetMode() {
+            const isAuto = document.getElementById('budget-auto-calc').checked;
+            if (!currentProject.finance) currentProject.finance = {};
+            currentProject.finance.budgetMode = isAuto ? 'auto_sum' : 'manual';
+            renderMeta(); // Re-render to update fields
         }
 
         function renderDeliverables() {

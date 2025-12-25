@@ -29,6 +29,21 @@
     .custom-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
     .custom-scroll::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 4px; }
     .custom-scroll::-webkit-scrollbar-track { background-color: #f1f5f9; }
+
+    /* Project Group Header */
+    .project-group-header { 
+        grid-column: 1 / -1; 
+        background: #e0f2fe; 
+        padding: 8px 16px; 
+        font-weight: bold; 
+        color: #0369a1; 
+        border-bottom: 1px solid #cbd5e1;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+    }
+    .project-group-header:hover { background: #bae6fd; }
   </style>
 </head>
 <body class="bg-gray-100 text-slate-800">
@@ -168,13 +183,30 @@
       // Let's iterate segments starting from index 1
       for (let i = 1; i < segs.length; i++) {
           const s = segs[i];
+          
+          // Fix for S04 vs S4 issue:
+          // Convention: 
+          // Stage: S + Number (usually no leading zero, e.g. S1, S2)
+          // Service: S + Leading Zero + Number (e.g. S01, S04) OR P + Number
+          
           // Check for Stage (S + Number)
-          // We assume Stage appears BEFORE Product/Service if both exist
-          if (!step && /^S\d+$/.test(s)) {
-             // Is this Stage or Service? 
-             // If we haven't found a stage yet, this is likely the stage.
-             step = Number(s.substring(1));
-             continue;
+          // Only if we haven't found a stage yet
+          if (!step) {
+             // Strict check for Stage: S followed by non-zero digit OR S followed by digit but user claims S4 is not stage?
+             // Let's rely on leading zero heuristic if possible, or position.
+             // Heuristic: If it starts with S0, it's a Service, NOT a Stage.
+             if (/^S0\d+$/.test(s)) {
+                 // It's a service (S01, S04), NOT a stage.
+                 // So we treat it as Product/Type
+                 type = 'S';
+                 product = s;
+                 continue; 
+             }
+             
+             if (/^S\d+$/.test(s)) {
+                 step = Number(s.substring(1));
+                 continue;
+             }
           }
           
           // Check for Product/Service
@@ -682,18 +714,12 @@
                                         <div className="px-6 py-2 flex flex-col justify-center border-r border-slate-200 bg-white/50 backdrop-blur-sm group cursor-pointer hover:bg-blue-50 transition-colors z-20 relative"
                                              onClick={() => {
                                                  if (c.isAgg) return;
-                                                 const rawTime = (c.data && c.data['项目周期']) || extractField(c.rawText, '项目周期');
-                                                 setEditingCard({ id: c.id || c.cardId, rawTime, cardId: c.cardId });
+                                                 window.open(`cardv8.html?id=${encodeURIComponent(c.cardId)}`, '_blank');
                                              }}
-                                             title={c.isAgg ? "聚合任务时间由子任务推算" : "点击编辑时间"}
+                                             title={c.isAgg ? "聚合任务" : "点击查看卡片详情"}
                                         >
-                                            <div className={`font-bold text-sm leading-tight mb-1 flex items-center justify-between ${c.isAgg ? 'text-purple-600' : 'text-slate-700'}`}>
+                                            <div className={`font-bold text-sm leading-tight mb-1 flex items-center justify-between ${c.isAgg ? 'text-purple-600' : 'text-slate-700 group-hover:text-blue-600'}`}>
                                                 <span>{name}</span>
-                                                {!c.isAgg && (
-                                                    <span className="text-blue-500 bg-blue-100 hover:bg-blue-200 px-1.5 py-0.5 rounded text-[10px] opacity-60 group-hover:opacity-100 transition-opacity">
-                                                        ✎ 编辑
-                                                    </span>
-                                                )}
                                             </div>
                                             <div className="text-[10px] text-slate-400 font-mono">{c.cardId}</div>
                                         </div>
