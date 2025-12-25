@@ -147,16 +147,45 @@
     function parseCardId(cardId='') {
       const v = (cardId || '').trim().replace(/[—–－]/g, '-').toUpperCase();
       const segs = v.split('-').filter(Boolean);
-      if (segs.length < 3) return {};
+      if (segs.length < 2) return {}; // Need at least CUST-S...
+      
       let step, product, type, prefix;
-      for (const s of segs) {
-        const sm = s.match(/^S(\d+)$/i);
-        if (sm) step = Number(sm[1]);
-        const pm = s.match(/^([SP])(\d+)$/i);
-        if (pm) { type = pm[1].toUpperCase(); product = pm[1].toUpperCase() + pm[2]; }
-      }
-      // prefix 取第一段（客户代号）
+      
+      // Prefix is always first segment
       prefix = segs[0];
+
+      // Logic:
+      // 1. Find the segment that DEFINITELY represents a Stage (S + number)
+      //    But wait, S04 can be Service 04. 
+      //    Convention: Stage is usually S1, S2 (single digit) or S01 if explicitly stage.
+      //    However, in 1205-S1-S04:
+      //    S1 -> Stage 1
+      //    S04 -> Service 04
+      //    
+      //    Rule: The FIRST 'S' segment after prefix is usually the Stage. 
+      //    The SUBSEQUENT 'S' or 'P' segment is the Product/Service.
+      
+      // Let's iterate segments starting from index 1
+      for (let i = 1; i < segs.length; i++) {
+          const s = segs[i];
+          // Check for Stage (S + Number)
+          // We assume Stage appears BEFORE Product/Service if both exist
+          if (!step && /^S\d+$/.test(s)) {
+             // Is this Stage or Service? 
+             // If we haven't found a stage yet, this is likely the stage.
+             step = Number(s.substring(1));
+             continue;
+          }
+          
+          // Check for Product/Service
+          // If we already have a stage, any subsequent S/P is product
+          // If we don't have a stage, but find P..., that's product. 
+          if (/^[SP]\d+$/.test(s)) {
+              type = s[0];
+              product = s;
+          }
+      }
+      
       return { step, product, type, prefix };
     }
 

@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>项目详情 | Project Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <style>body { font-family: 'Noto Sans SC', sans-serif; background-color: #f8fafc; }</style>
+</head>
+<body class="min-h-screen flex flex-col">
+    <!-- Navbar -->
+    <nav class="bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center gap-4">
+                    <a href="projects.html" class="text-gray-500 hover:text-gray-900 flex items-center gap-1">
+                        <i data-lucide="arrow-left" class="w-5 h-5"></i> 返回看板
+                    </a>
+                    <div class="h-6 w-px bg-gray-200"></div>
+                    <div class="font-bold text-xl text-gray-900" id="nav-title">加载中...</div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button onclick="saveProject()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 flex items-center gap-2 shadow-sm">
+                        <i data-lucide="save" class="w-4 h-4"></i> 保存变更
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex gap-8">
+        
+        <!-- Left: Meta Info Editor -->
+        <div class="w-1/3 flex flex-col gap-6">
+            <!-- Basic Info -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h3 class="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <i data-lucide="info" class="w-5 h-5 text-blue-500"></i> 基础信息
+                </h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase">项目名称</label>
+                        <input type="text" id="p-name" class="mt-1 w-full p-2 border rounded text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-100 outline-none">
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase">客户代号</label>
+                            <input type="text" id="p-cust" class="mt-1 w-full p-2 border rounded text-sm font-mono uppercase bg-gray-50" readonly>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase">项目代号</label>
+                            <input type="text" id="p-proj" class="mt-1 w-full p-2 border rounded text-sm font-mono uppercase bg-gray-50" readonly>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase">合同编号</label>
+                        <input type="text" id="p-contract" class="mt-1 w-full p-2 border rounded text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-100 outline-none">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Team & Finance -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h3 class="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <i data-lucide="users" class="w-5 h-5 text-purple-500"></i> 团队与预算
+                </h3>
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase">销售负责人</label>
+                            <input type="text" id="t-sales" class="mt-1 w-full p-2 border rounded text-sm bg-gray-50 focus:bg-white outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase">交付负责人</label>
+                            <input type="text" id="t-service" class="mt-1 w-full p-2 border rounded text-sm bg-gray-50 focus:bg-white outline-none">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase">产品负责人</label>
+                        <input type="text" id="t-product" class="mt-1 w-full p-2 border rounded text-sm bg-gray-50 focus:bg-white outline-none">
+                    </div>
+                    <div class="border-t pt-4 mt-2">
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-2">财务概览 (CNY)</label>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="text-xs text-gray-400">预计收入</label>
+                                <div class="relative">
+                                    <span class="absolute left-2 top-2 text-gray-400">¥</span>
+                                    <input type="number" id="f-income" class="w-full pl-6 p-2 border rounded text-sm bg-gray-50 focus:bg-white outline-none">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="text-xs text-gray-400">预计成本</label>
+                                <div class="relative">
+                                    <span class="absolute left-2 top-2 text-gray-400">¥</span>
+                                    <input type="number" id="f-cost" class="w-full pl-6 p-2 border rounded text-sm bg-gray-50 focus:bg-white outline-none">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+             <!-- Deliverables -->
+             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 flex-1">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-gray-900 flex items-center gap-2">
+                        <i data-lucide="package" class="w-5 h-5 text-green-500"></i> 货架清单
+                    </h3>
+                    <button onclick="addDeliverable()" class="text-xs text-blue-600 hover:underline">+ 添加</button>
+                </div>
+                <div id="deliverables-list" class="space-y-2 max-h-60 overflow-y-auto custom-scroll">
+                    <!-- Items rendered here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Linked Cards -->
+        <div class="flex-1 flex flex-col gap-6">
+            <div class="flex justify-between items-center">
+                <h2 class="text-2xl font-black text-gray-900">关联项目卡片</h2>
+                <button onclick="createNewCard()" class="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 flex items-center gap-2 shadow-sm">
+                    <i data-lucide="plus-circle" class="w-4 h-4"></i> 新增卡片
+                </button>
+            </div>
+
+            <!-- Card Grid -->
+            <div id="cards-container" class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                <!-- Cards Rendered Here -->
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Global State
+        let currentProject = null;
+        let allProjects = [];
+        let allCards = [];
+        const projectId = new URLSearchParams(window.location.search).get('id');
+
+        // Init
+        async function init() {
+            if (!projectId) { alert('缺少项目ID'); window.location.href = 'projects.html'; return; }
+            
+            try {
+                const [pRes, cRes] = await Promise.all([ fetch('/api/projects'), fetch('/api/cards') ]);
+                allProjects = await pRes.json();
+                allCards = await cRes.json();
+                
+                currentProject = allProjects.find(p => p.id === projectId);
+                if (!currentProject) throw new Error('未找到项目');
+                
+                renderMeta();
+                renderCards();
+                lucide.createIcons();
+            } catch (e) {
+                alert(e.message);
+            }
+        }
+
+        // Render Meta
+        function renderMeta() {
+            document.title = `${currentProject.meta.name} - 详情`;
+            document.getElementById('nav-title').innerText = currentProject.meta.name;
+            
+            // Basic
+            document.getElementById('p-name').value = currentProject.meta.name;
+            document.getElementById('p-cust').value = currentProject.meta.customerNo;
+            document.getElementById('p-proj').value = currentProject.meta.projectNo;
+            document.getElementById('p-contract').value = currentProject.meta.contractNo || '';
+            
+            // Team
+            document.getElementById('t-sales').value = currentProject.team?.sales || '';
+            document.getElementById('t-service').value = currentProject.team?.service || '';
+            document.getElementById('t-product').value = currentProject.team?.product || '';
+            
+            // Finance
+            document.getElementById('f-income').value = currentProject.finance?.budgetIncome || 0;
+            document.getElementById('f-cost').value = currentProject.finance?.budgetCost || 0;
+
+            // Deliverables
+            renderDeliverables();
+        }
+
+        function renderDeliverables() {
+            const list = document.getElementById('deliverables-list');
+            const items = currentProject.deliverables || [];
+            if (items.length === 0) {
+                list.innerHTML = `<div class="text-xs text-gray-400 text-center py-4">暂无清单，点击添加</div>`;
+                return;
+            }
+            list.innerHTML = items.map((item, idx) => `
+                <div class="flex items-center gap-2 bg-gray-50 p-2 rounded border border-gray-100 group">
+                    <input type="text" value="${item.name}" onchange="updateDeliverable(${idx}, 'name', this.value)" class="flex-1 bg-transparent text-sm outline-none font-medium" placeholder="名称">
+                    <select onchange="updateDeliverable(${idx}, 'type', this.value)" class="text-xs bg-white border rounded px-1 py-0.5 outline-none">
+                        <option value="标准" ${item.type==='标准'?'selected':''}>标准</option>
+                        <option value="定开" ${item.type==='定开'?'selected':''}>定开</option>
+                        <option value="服务" ${item.type==='服务'?'selected':''}>服务</option>
+                    </select>
+                    <button onclick="removeDeliverable(${idx})" class="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function addDeliverable() {
+            if (!currentProject.deliverables) currentProject.deliverables = [];
+            currentProject.deliverables.push({ name: '新交付物', type: '标准' });
+            renderDeliverables();
+        }
+
+        function updateDeliverable(idx, field, val) {
+            currentProject.deliverables[idx][field] = val;
+        }
+
+        function removeDeliverable(idx) {
+            currentProject.deliverables.splice(idx, 1);
+            renderDeliverables();
+        }
+
+        // Render Cards
+        function renderCards() {
+            const container = document.getElementById('cards-container');
+            // Logic: 
+            // Project Prefix: 1205-NI
+            // Card ID: 1205-S1-S01
+            // Common part: 1205
+            
+            // If projectNo is 'NI' (Non-Integrated / General), we might only match CustomerNo
+            // Or if Card ID follows 1205-S... format, it doesn't contain Project Code 'NI'.
+            
+            // Revised Matching Logic:
+            // 1. Strict Match: Card ID starts with `CustomerNo-ProjectNo-`
+            // 2. Loose Match: Card ID starts with `CustomerNo-S` (implies direct stage under customer, usually default project)
+            
+            const custPrefix = currentProject.meta.customerNo + '-';
+            const fullPrefix = `${currentProject.meta.customerNo}-${currentProject.meta.projectNo}-`;
+            
+            const linked = allCards.filter(c => {
+                const cid = (c.cardId || '').toUpperCase();
+                // Match 1205-NI-S1...
+                if (cid.startsWith(fullPrefix)) return true;
+                // Match 1205-S1... (If projectNo is generic or implicit)
+                // We assume if card has no project code segment, it belongs to the "Primary" project of that customer
+                // Heuristic: Check if cid looks like CUST-S\d
+                if (cid.startsWith(custPrefix) && cid.match(new RegExp(`^${custPrefix}S\\d+`))) {
+                    // Only claim these loose cards if this project is considered the "Main" one?
+                    // For now, let's include them to ensure visibility.
+                    return true;
+                }
+                return false;
+            });
+            
+            if (linked.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full py-12 flex flex-col items-center justify-center text-gray-400 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50">
+                        <i data-lucide="file-plus" class="w-10 h-10 mb-2 opacity-50"></i>
+                        <p>暂无关联卡片</p>
+                        <p class="text-xs mt-1">点击“新增卡片”开始创建</p>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
+            container.innerHTML = linked.map(c => {
+                const name = (c.data && c.data['项目名称']) || '未命名项目';
+                const status = (c.data && c.data['项目周期']) ? '进行中' : '规划中';
+                return `
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow relative group">
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="font-mono text-xs font-bold text-gray-400 bg-gray-100 px-2 py-1 rounded">${c.cardId}</span>
+                        <a href="cardv8.html?id=${encodeURIComponent(c.cardId)}" target="_blank" class="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50">
+                            <i data-lucide="external-link" class="w-4 h-4"></i>
+                        </a>
+                    </div>
+                    <h4 class="font-bold text-gray-900 text-lg mb-2 line-clamp-1">${name}</h4>
+                    <div class="text-sm text-gray-500 line-clamp-3 mb-4 min-h-[3rem]">
+                        ${(c.data && c.data['项目目标']) || '暂无目标描述...'}
+                    </div>
+                    <div class="flex items-center gap-4 text-xs text-gray-400 border-t pt-3">
+                        <span class="flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3"></i> ${status}</span>
+                        <span class="flex items-center gap-1"><i data-lucide="calendar" class="w-3 h-3"></i> ${new Date(c.updatedAt || Date.now()).toLocaleDateString()}</span>
+                    </div>
+                </div>
+                `;
+            }).join('');
+            lucide.createIcons();
+        }
+
+        // Actions
+        async function saveProject() {
+            // Sync UI to State
+            currentProject.meta.name = document.getElementById('p-name').value;
+            currentProject.meta.contractNo = document.getElementById('p-contract').value;
+            currentProject.team.sales = document.getElementById('t-sales').value;
+            currentProject.team.service = document.getElementById('t-service').value;
+            currentProject.team.product = document.getElementById('t-product').value;
+            currentProject.finance.budgetIncome = Number(document.getElementById('f-income').value);
+            currentProject.finance.budgetCost = Number(document.getElementById('f-cost').value);
+
+            // Save to Backend
+            const idx = allProjects.findIndex(p => p.id === projectId);
+            if (idx >= 0) allProjects[idx] = currentProject;
+            
+            try {
+                const res = await fetch('/api/projects', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(allProjects)
+                });
+                if (res.ok) {
+                    alert('保存成功');
+                } else {
+                    throw new Error('Server Error');
+                }
+            } catch (e) {
+                alert('保存失败: ' + e.message);
+            }
+        }
+
+        function createNewCard() {
+            // Auto generate next ID suggestion: CUST-PROJ-S1-P01
+            const prefix = `${currentProject.meta.customerNo}-${currentProject.meta.projectNo}`;
+            // Find existing max stage
+            // Pass prefix and parentId to card editor
+            window.open(`cardv8.html?projectPrefix=${encodeURIComponent(prefix)}&parentId=${encodeURIComponent(currentProject.id)}`, '_blank');
+        }
+
+        init();
+    </script>
+</body>
+</html>
