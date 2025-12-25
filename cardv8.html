@@ -696,6 +696,43 @@
 
             // Init Load
             useEffect(() => {
+                // 0. Check for projectPrefix param to auto-fill ID
+                const urlParams = new URLSearchParams(window.location.search);
+                const projectPrefix = urlParams.get('projectPrefix');
+                const parentId = urlParams.get('parentId');
+
+                if (projectPrefix) {
+                    // Auto-fill ID suggestion: Prefix-S1-P01
+                    const suggestion = `${projectPrefix}-S1-P01`;
+                    // Only set if we are creating new (no ID param)
+                    if (!urlParams.get('id')) {
+                         setParsedData(prev => ({ ...prev, '项目编号': suggestion }));
+                         setRawText(prev => {
+                            if (prev.includes('项目编号：')) return prev.replace(/项目编号：.*/, `项目编号：${suggestion}`);
+                            return `项目编号：${suggestion}\n` + prev;
+                         });
+                    }
+                }
+                
+                // Store parentId if provided
+                if (parentId) {
+                    console.log("Associated with Parent Project:", parentId);
+                    // Fetch Parent Project Info to Display Context
+                    fetch('/api/projects').then(r=>r.json()).then(projs => {
+                        const p = projs.find(x => x.id === parentId);
+                        if(p) {
+                            const header = document.querySelector('header .flex-1');
+                            if(header && !document.getElementById('parent-context-badge')) {
+                                const badge = document.createElement('div');
+                                badge.id = 'parent-context-badge';
+                                badge.className = 'text-xs text-blue-100 bg-blue-800/30 px-2 py-1 rounded inline-flex items-center gap-1 mt-1';
+                                badge.innerHTML = `<span>所属项目: ${p.meta.name}</span>`;
+                                header.appendChild(badge);
+                            }
+                        }
+                    });
+                }
+
                 // 1. Load Local Config (Styles, AI)
                 const saved = localStorage.getItem(STORAGE_KEY);
                 if (saved) {

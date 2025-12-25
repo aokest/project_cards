@@ -70,16 +70,26 @@
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs font-bold text-gray-500 uppercase">销售负责人</label>
-                            <input type="text" id="t-sales" class="mt-1 w-full p-2 border rounded text-sm bg-gray-50 focus:bg-white outline-none">
+                            <!-- Tag Input for Sales -->
+                            <div class="mt-1 w-full border rounded text-sm bg-gray-50 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-100 min-h-[38px] flex flex-wrap gap-1 p-1" onclick="document.getElementById('input-sales').focus()">
+                                <div id="tags-sales" class="contents"></div>
+                                <input type="text" id="input-sales" class="flex-1 bg-transparent outline-none min-w-[60px]" placeholder="输入回车" onkeydown="handleTagInput(event, 'sales')">
+                            </div>
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-gray-500 uppercase">交付负责人</label>
-                            <input type="text" id="t-service" class="mt-1 w-full p-2 border rounded text-sm bg-gray-50 focus:bg-white outline-none">
+                             <div class="mt-1 w-full border rounded text-sm bg-gray-50 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-100 min-h-[38px] flex flex-wrap gap-1 p-1" onclick="document.getElementById('input-service').focus()">
+                                <div id="tags-service" class="contents"></div>
+                                <input type="text" id="input-service" class="flex-1 bg-transparent outline-none min-w-[60px]" placeholder="输入回车" onkeydown="handleTagInput(event, 'service')">
+                            </div>
                         </div>
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-500 uppercase">产品负责人</label>
-                        <input type="text" id="t-product" class="mt-1 w-full p-2 border rounded text-sm bg-gray-50 focus:bg-white outline-none">
+                         <div class="mt-1 w-full border rounded text-sm bg-gray-50 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-100 min-h-[38px] flex flex-wrap gap-1 p-1" onclick="document.getElementById('input-product').focus()">
+                            <div id="tags-product" class="contents"></div>
+                            <input type="text" id="input-product" class="flex-1 bg-transparent outline-none min-w-[60px]" placeholder="输入回车" onkeydown="handleTagInput(event, 'product')">
+                        </div>
                     </div>
                     <div class="border-t pt-4 mt-2">
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-2">财务概览 (CNY)</label>
@@ -138,6 +148,7 @@
         let currentProject = null;
         let allProjects = [];
         let allCards = [];
+        let catalog = []; // Standard Catalog
         const projectId = new URLSearchParams(window.location.search).get('id');
 
         // Init
@@ -145,9 +156,14 @@
             if (!projectId) { alert('缺少项目ID'); window.location.href = 'projects.html'; return; }
             
             try {
-                const [pRes, cRes] = await Promise.all([ fetch('/api/projects'), fetch('/api/cards') ]);
+                const [pRes, cRes, catRes] = await Promise.all([ 
+                    fetch('/api/projects'), 
+                    fetch('/api/cards'),
+                    fetch('/api/catalog')
+                ]);
                 allProjects = await pRes.json();
                 allCards = await cRes.json();
+                catalog = await catRes.json();
                 
                 currentProject = allProjects.find(p => p.id === projectId);
                 if (!currentProject) throw new Error('未找到项目');
@@ -157,6 +173,50 @@
                 lucide.createIcons();
             } catch (e) {
                 alert(e.message);
+            }
+        }
+
+        // --- Tag Input Logic ---
+        function renderTags(role) {
+            const container = document.getElementById(`tags-${role}`);
+            const val = currentProject.team?.[role];
+            // Ensure array
+            const tags = Array.isArray(val) ? val : (val ? [val] : []);
+            
+            container.innerHTML = tags.map(tag => `
+                <span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs flex items-center gap-1">
+                    ${tag}
+                    <button onclick="removeTag('${role}', '${tag}')" class="hover:text-blue-900"><i data-lucide="x" class="w-3 h-3"></i></button>
+                </span>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function handleTagInput(e, role) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const val = e.target.value.trim();
+                if (val) {
+                    // Update state
+                    if (!currentProject.team) currentProject.team = {};
+                    let current = currentProject.team[role];
+                    if (!Array.isArray(current)) current = current ? [current] : [];
+                    
+                    if (!current.includes(val)) {
+                        current.push(val);
+                        currentProject.team[role] = current;
+                        renderTags(role);
+                    }
+                    e.target.value = '';
+                }
+            }
+        }
+
+        function removeTag(role, tag) {
+            let current = currentProject.team[role];
+            if (Array.isArray(current)) {
+                currentProject.team[role] = current.filter(t => t !== tag);
+                renderTags(role);
             }
         }
 
@@ -171,10 +231,10 @@
             document.getElementById('p-proj').value = currentProject.meta.projectNo;
             document.getElementById('p-contract').value = currentProject.meta.contractNo || '';
             
-            // Team
-            document.getElementById('t-sales').value = currentProject.team?.sales || '';
-            document.getElementById('t-service').value = currentProject.team?.service || '';
-            document.getElementById('t-product').value = currentProject.team?.product || '';
+            // Team (Tags)
+            renderTags('sales');
+            renderTags('service');
+            renderTags('product');
             
             // Finance
             document.getElementById('f-income').value = currentProject.finance?.budgetIncome || 0;
@@ -187,13 +247,26 @@
         function renderDeliverables() {
             const list = document.getElementById('deliverables-list');
             const items = currentProject.deliverables || [];
+            
+            // Prepare datalist for catalog suggestions
+            const datalist = `
+                <datalist id="catalog-list">
+                    ${catalog.map(c => `<option value="${c.name}">${c.type} - ¥${c.unit_price||0}</option>`).join('')}
+                </datalist>
+            `;
+            
+            // Add datalist to body if not present
+            if (!document.getElementById('catalog-list')) {
+                document.body.insertAdjacentHTML('beforeend', datalist);
+            }
+
             if (items.length === 0) {
                 list.innerHTML = `<div class="text-xs text-gray-400 text-center py-4">暂无清单，点击添加</div>`;
                 return;
             }
             list.innerHTML = items.map((item, idx) => `
                 <div class="flex items-center gap-2 bg-gray-50 p-2 rounded border border-gray-100 group">
-                    <input type="text" value="${item.name}" onchange="updateDeliverable(${idx}, 'name', this.value)" class="flex-1 bg-transparent text-sm outline-none font-medium" placeholder="名称">
+                    <input type="text" value="${item.name}" list="catalog-list" onchange="updateDeliverable(${idx}, 'name', this.value)" class="flex-1 bg-transparent text-sm outline-none font-medium" placeholder="名称 (可搜库)">
                     <select onchange="updateDeliverable(${idx}, 'type', this.value)" class="text-xs bg-white border rounded px-1 py-0.5 outline-none">
                         <option value="标准" ${item.type==='标准'?'selected':''}>标准</option>
                         <option value="定开" ${item.type==='定开'?'selected':''}>定开</option>
@@ -207,7 +280,7 @@
 
         function addDeliverable() {
             if (!currentProject.deliverables) currentProject.deliverables = [];
-            currentProject.deliverables.push({ name: '新交付物', type: '标准' });
+            currentProject.deliverables.push({ name: '', type: '标准' });
             renderDeliverables();
         }
 
@@ -295,9 +368,9 @@
             // Sync UI to State
             currentProject.meta.name = document.getElementById('p-name').value;
             currentProject.meta.contractNo = document.getElementById('p-contract').value;
-            currentProject.team.sales = document.getElementById('t-sales').value;
-            currentProject.team.service = document.getElementById('t-service').value;
-            currentProject.team.product = document.getElementById('t-product').value;
+            
+            // Team is already updated via handleTagInput
+            
             currentProject.finance.budgetIncome = Number(document.getElementById('f-income').value);
             currentProject.finance.budgetCost = Number(document.getElementById('f-cost').value);
 
