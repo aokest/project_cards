@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>项目时间表 · 16:9</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;600;800&display=swap');
+    body { font-family: 'Noto Sans SC', sans-serif; }
+    /* 自定义滚动条 */
+    .custom-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+    .custom-scroll::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 4px; }
+    .custom-scroll::-webkit-scrollbar-track { background-color: #f1f5f9; }
+  </style>
+</head>
+<body class="bg-gray-100 text-slate-800">
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect, useMemo, useRef } = React;
+
+    // 默认内置数据，确保双击打开即有内容
+    const DEFAULT_DATA = `# 项目时间表（可编辑）
+
+说明：修改每个项目的“时间”行即可；支持格式：
+- 2025年12月-2026年1月
+- 2026年3月-5月
+- 5月-6月（将使用文中首个出现的年份作为默认年）
+- 2026年全年
+- 持续监控；月度汇报（将自动铺满时间窗口）
+
+---
+
+- 卡片编号: 1205-S1-P01
+- 项目名称: 强化攻击诱捕能力
+- 时间: 25年12月-26年1月
+
+- 卡片编号: 1205-S1-S02
+- 项目名称: 数字风洞数字健康管理服务
+- 时间: 2026年1月；2026年2月-4月；2026年5月-6月
+
+- 卡片编号: 1205-S1-S01
+- 项目名称: 泄露情报监控
+- 时间: 持续监控
+
+- 卡片编号: 1205-S1-S03
+- 项目名称: 模拟黑客入侵检查
+- 时间: 2026年4月
+
+- 卡片编号: 1205-S1-S03-B
+- 项目名称: 资产漏洞情报预警服务
+- 时间: 持续监控
+
+- 卡片编号: 1205-S1-S04
+- 项目名称: 机密敏感信息扫描监测服务
+- 时间: 持续监控
+
+- 卡片编号: 1205-S1-S05
+- 项目名称: 安全制度建设及推广
+- 时间: 2026年1月
+
+- 卡片编号: 1205-S2-P01
+- 项目名称: 全栈诱捕能力强化
+- 时间: 2026年3月-5月
+
+- 卡片编号: 1205-S2-S01
+- 项目名称: 攻防演练
+- 时间: 2026年4月
+
+- 卡片编号: 1205-S2-S02
+- 项目名称: 季度黑客模拟巡检
+- 时间: 2026年5月-6月；11月-12月
+
+- 卡片编号: 1205-S2-S03
+- 项目名称: SRC中心建设及互联网众测运营
+- 时间: 2026年5月-6月；11月-12月；2026年全年
+
+- 卡片编号: 1205-S2-S05
+- 项目名称: 研发运维安全能力考核认证
+- 时间: 2026年4月-5月；9月-10月
+
+- 卡片编号: 1205-S3-S1
+- 项目名称: 供应链安全管理
+- 时间: 2026年7月-9月
+
+- 卡片编号: 1205-S3-S2
+- 项目名称: 人员安全意识培训与安全文化建设
+- 时间: 2026年10月；2026年全年`;
+
+    // --- 解析工具函数 ---
+
+    function extractField(rawText, key) {
+      if (!rawText) return '';
+      const lines = rawText.split('\n');
+      let capture = false; let out = '';
+      for (const line of lines) {
+        const m = line.match(/^\s*(\*\*)?([^*：:]{1,20})(\*\*)?\s*[:：]\s*(.*)/);
+        if (m) {
+          const k = m[2].trim();
+          if (k === key) { capture = true; out += (m[4] || '').trim(); continue; }
+          if (capture) break;
+        } else if (capture) {
+          out += (out ? '\n' : '') + line.trim();
+        }
+      }
+      return out.trim();
+    }
+
+    function parseCardId(cardId='') {
+      const m = cardId.match(/^(\d+)-S(\d+)-([SP]\d+)/i); // 支持 S1-S01 或 S1-P01
+      return {
+        step: m ? Number(m[2]) : undefined,
+        product: m ? m[3] : undefined,
+        type: m ? m[3][0].toUpperCase() : undefined, // 'S' or 'P'
+        prefix: m ? m[1] : undefined
+      };
+    }
+
+    // 时间轴窗口：2025年12月 - 2026年12月 (13个月)
+    function getTimelineWindow() {
+      const originYear = 2025;
+      const originMonth = 12;
+      const windowMonths = 13;
+      const labels = [];
+      for (let i=0;i<windowMonths;i++) {
+        const y = originYear + Math.floor((originMonth-1 + i)/12);
+        const m = ((originMonth-1 + i) % 12) + 1;
+        labels.push({ y, m, label: `${y}年${m}月` });
+      }
+      return { originYear, originMonth, windowMonths, labels };
+    }
+
+    // --- 颜色配置 ---
+    const STAGE_COLORS = {
+        'prep': '#fbbf24',      // Amber-400 (Yellow/Orange)
+        'execution': '#3b82f6', // Blue-500 (Blue)
+        'closing': '#10b981',   // Emerald-500 (Green)
+        'default': '#3b82f6'
+    };
+
+    const STEP_BG_COLORS = {
+        1: '#EFF6FF', // Blue-50
+        2: '#F0FDF4', // Green-50
+        3: '#FFFBEB'  // Amber-50
+    };
+
+    // --- 辅助函数：解析时间 ---
+    // 返回 { start: {y,m}, end: {y,m}, type: 'prep'|'execution'|'closing' }
+    function parseGanttRanges(text='') {
+      if (!text) return [];
+      const ranges = [];
+      const defaultYear = 2026;
+      const normalizeYear = (y) => {
+        let n = parseInt(y);
+        if (n < 100) return n + 2000;
+        return n;
+      };
+
+      // Helper to guess phase type from text context
+      const guessType = (str) => {
+          if (/设计|规划|准备|方案|访谈|梳理|前期|调研|采购|招标/.test(str)) return 'prep';
+          if (/实施|执行|演练|部署|开发|建设|上线|运营|推广|加固|整改|联调|测试/.test(str)) return 'execution';
+          if (/验收|复盘|总结|汇报|收尾|提交|归档|交付|结算|审计/.test(str)) return 'closing';
+          return 'execution'; // Default
+      };
+
+      // Strategy: Split by delimiters (newline, semicolon) and parse each segment
+      // e.g. "1月方案; 3月实施" -> ["1月方案", "3月实施"]
+      const segments = text.split(/[;\n；]/).map(s => s.trim()).filter(s => s);
+      
+      // Heuristic: If we have multiple segments and NO keywords found, apply positional coloring?
+      // Let's first parse all segments.
+      
+      let parsedSegments = segments.map(seg => {
+          let type = guessType(seg);
+          let match = null;
+          let range = null;
+
+          // Pattern A: 2026年3月-5月 or 2026年3月-2026年5月
+          let m = seg.match(/(\d{2,4})年\s*(\d{1,2})月\s*[-~到]\s*(\d{2,4})?年?\s*(\d{1,2})月/);
+          if (m) {
+              const startY = normalizeYear(m[1]);
+              const startM = Number(m[2]);
+              const endY = m[3] ? normalizeYear(m[3]) : startY;
+              const endM = Number(m[4]);
+              range = { start: { y: startY, m: startM }, end: { y: endY, m: endM } };
+          } 
+          
+          // Pattern B: 4月-5月 (Assume default year)
+          if (!range) {
+              m = seg.match(/(?<!\d年)(\d{1,2})月\s*[-~到]\s*(\d{1,2})月/);
+              if (m) {
+                  range = { start: { y: defaultYear, m: Number(m[1]) }, end: { y: defaultYear, m: Number(m[2]) } };
+              }
+          }
+
+          // Pattern C: 10月 (Single month)
+          if (!range) {
+              m = seg.match(/(?<!\d年)(?<!\d)(?<![-~到])(\d{1,2})月(?![-~到\d])/);
+              if (m) {
+                  range = { start: { y: defaultYear, m: Number(m[1]) }, end: { y: defaultYear, m: Number(m[1]) } };
+              }
+          }
+
+          // Pattern D: Dot notation 2026.1-2026.3
+          if (!range) {
+               m = seg.match(/(\d{2,4})\.(\d{1,2})\s*[-~]\s*(\d{2,4})\.(\d{1,2})/);
+               if(m) {
+                   range = { start: { y: normalizeYear(m[1]), m: Number(m[2]) }, end: { y: normalizeYear(m[3]), m: Number(m[4]) } };
+               }
+          }
+          
+          // Special Case: "持续" -> Whole Window
+          if (!range && /(持续|全年|常态化)/.test(seg)) {
+             const { originYear, originMonth, windowMonths } = getTimelineWindow();
+             const endMonth = ((originMonth-1 + (windowMonths-1)) % 12) + 1;
+             const endYear = originYear + Math.floor((originMonth-1 + (windowMonths-1))/12);
+             range = { start: { y: originYear, m: originMonth }, end: { y: endYear, m: endMonth } };
+          }
+
+          return { range, type, raw: seg };
+      }).filter(r => r.range);
+
+      // Apply positional heuristics if types are all 'execution' (default) and we have multiple segments
+      // e.g. "Jan; Feb-Mar; Apr" -> Prep, Exec, Closing
+      const allDefault = parsedSegments.every(p => p.type === 'execution' && guessType(p.raw) === 'execution');
+      if (allDefault && parsedSegments.length >= 2) {
+          if (parsedSegments.length === 2) {
+              // 2 segments: Exec -> Closing
+              parsedSegments[0].type = 'execution';
+              parsedSegments[1].type = 'closing';
+          } else if (parsedSegments.length >= 3) {
+              // 3+ segments: Prep -> Exec ... -> Closing
+              parsedSegments[0].type = 'prep';
+              parsedSegments[parsedSegments.length-1].type = 'closing';
+              // Middle remains execution
+          }
+      }
+
+      return parsedSegments.map(p => ({ ...p.range, type: p.type }));
+    }
+
+    function monthIndex(y, m) {
+      const { originYear, originMonth } = getTimelineWindow();
+      return (y - originYear) * 12 + (m - originMonth);
+    }
+
+    function toPercent(r) {
+      const { windowMonths } = getTimelineWindow();
+      const startIdx = monthIndex(r.start.y, r.start.m);
+      const endIdx = monthIndex(r.end.y, r.end.m);
+      const s = Math.max(0, Math.min(windowMonths-1, startIdx));
+      const e = Math.max(0, Math.min(windowMonths-1, endIdx));
+      const span = Math.max(1, e - s + 1);
+      return { left: (s/windowMonths)*100, width: (span/windowMonths)*100 };
+    }
+
+    async function exportPNG(node) {
+      if (!node) return;
+      const canvas = await html2canvas(node, { backgroundColor: null, scale: 1.5 });
+      const url = canvas.toDataURL('image/png');
+      const a = document.createElement('a'); a.href = url; a.download = 'timetable.png'; a.click();
+    }
+
+    const exportMarkdown = (cards) => {
+        let md = `# 项目时间表导出 (${cards.length}个)\n\n`;
+        cards.forEach(c => {
+            md += `## ${c.data?.['项目名称'] || extractField(c.rawText, '项目名称') || '未命名项目'}\n\n`;
+            md += `**编号**: ${c.cardId || '-'}\n`;
+            md += `**周期**: ${c.data?.['项目周期'] || extractField(c.rawText, '项目周期') || '-'}\n\n`;
+            md += `\n---\n\n`;
+        });
+        const blob = new Blob([md], { type: 'text/markdown' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = 'project_timetable.md'; a.click(); URL.revokeObjectURL(url);
+    };
+
+    // --- 组件 ---
+
+    const EditModal = ({ isOpen, onClose, initialValue, cardId, onSave }) => {
+      const [val, setVal] = useState(initialValue);
+      useEffect(()=>{ setVal(initialValue); }, [initialValue]);
+      if(!isOpen) return null;
+      return (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+          <div className="bg-white rounded-xl shadow-2xl w-[600px] flex flex-col p-6">
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-sm font-mono">{cardId}</span>
+                编辑时间描述
+            </h2>
+            <div className="mb-4 text-xs text-gray-500 bg-gray-50 p-3 rounded leading-relaxed">
+                支持格式：<br/>
+                • 2026年3月-5月<br/>
+                • 1月方案；3月实施（分号分隔多段）<br/>
+                • 持续监控<br/>
+                • 2026年全年
+            </div>
+            <textarea 
+              className="w-full h-32 border p-4 font-mono text-base rounded border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all"
+              value={val} onChange={e=>setVal(e.target.value)}
+              placeholder="请输入项目时间描述..."
+            ></textarea>
+            <div className="flex justify-end gap-3 mt-4">
+              <button className="px-4 py-2 border rounded hover:bg-gray-50 text-gray-600" onClick={onClose}>取消</button>
+              <button className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-bold shadow-sm" onClick={()=>{ onSave(val); onClose(); }}>确认更新</button>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    const App = () => {
+      // 从 LocalStorage 读取数据，而不是使用 hardcoded data
+      const [cards, setCards] = useState([]);
+      const [prefix, setPrefix] = useState('');
+      const wrapRef = useRef(null);
+      
+      // Edit State
+      const [editingCard, setEditingCard] = useState(null); // { id, rawTime }
+
+      // API Helper (Simplified)
+      const api = {
+          async save(newCards) {
+             setCards(newCards);
+             localStorage.setItem('project_cards_v8', JSON.stringify(newCards));
+             try { await fetch('/api/cards', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(newCards) }); } catch(e){}
+          }
+      };
+
+      const handleSaveTime = (newTime) => {
+          if (!editingCard) return;
+          const targetId = editingCard.id;
+          
+          const nextCards = cards.map(c => {
+              if (c.id === targetId || c.cardId === targetId) {
+                  // Update data field
+                  const newData = { ...c.data, '项目周期': newTime };
+                  
+                  // Update rawText (Regex Replace)
+                  let newRaw = c.rawText;
+                  const timeRegex = /^(\s*(\*\*)?(项目周期|周期|Time)(\*\*)?\s*[:：])(.*)/m;
+                  if (timeRegex.test(newRaw)) {
+                      newRaw = newRaw.replace(timeRegex, `$1 ${newTime}`);
+                  } else {
+                      // Append if missing
+                      newRaw += `\n项目周期：${newTime}`;
+                  }
+                  
+                  return { ...c, data: newData, rawText: newRaw, updatedAt: new Date().toISOString() };
+              }
+              return c;
+          });
+          
+          api.save(nextCards);
+          setEditingCard(null);
+          alert('更新成功！');
+      };
+
+      // 读取 Data (Server -> LS -> Default)
+      useEffect(() => {
+        const loadData = async () => {
+            try {
+                let data = [];
+                // 1. Try API
+                try {
+                    const res = await fetch('/api/cards?t=' + Date.now());
+                    if (res.ok) data = await res.json();
+                } catch(e) { console.error("API Error", e); }
+
+                // 2. Fallback to LS
+                let localData = [];
+                const raw = localStorage.getItem('project_cards_v8');
+                if (raw) localData = JSON.parse(raw);
+
+                // Smart Merge for Timetable too
+                if (localData.length > data.length) {
+                    data = localData;
+                } else if (!Array.isArray(data) || data.length === 0) {
+                    data = localData;
+                }
+
+                if (Array.isArray(data) && data.length > 0) {
+                    // 过滤出有时间信息的卡片，并且未被禁用 (isVisible !== false)
+                    const validCards = data.filter(c => {
+                        if (c.isVisible === false) return false;
+                        const time = c.data?.['项目周期'] || extractField(c.rawText, '项目周期');
+                        return !!time;
+                    });
+                    setCards(validCards);
+                } else {
+                    // Fallback to default data if no local storage
+                    const lines = DEFAULT_DATA.split('\n');
+                    const result = [];
+                    let item = null;
+                    for (const line of lines) {
+                        const l = line.trim();
+                        if (l.startsWith('- 卡片编号:')) {
+                            if (item) result.push(item);
+                            item = { id: l.replace('- 卡片编号:', '').trim() };
+                        } else if (l.startsWith('- 项目名称:')) {
+                            if (!item) item = {}; item.name = l.replace('- 项目名称:', '').trim();
+                        } else if (l.startsWith('- 时间:')) {
+                            if (!item) item = {}; item.time = l.replace('- 时间:', '').trim();
+                        } else if (l === '' && item) {
+                            result.push(item); item = null;
+                        }
+                    }
+                    if (item) result.push(item);
+                    
+                    const converted = result.map(r => ({
+                        cardId: r.id,
+                        rawText: `项目名称：${r.name || ''}\n项目周期：${r.time || ''}`,
+                        data: { '项目名称': r.name, '项目周期': r.time }
+                    }));
+                    setCards(converted);
+                }
+            } catch (e) {
+                console.error("Failed to load cards", e);
+            }
+        };
+        loadData();
+        // Listen for storage events to update in real-time if multiple tabs are open
+        window.addEventListener('storage', loadData);
+        return () => window.removeEventListener('storage', loadData);
+      }, []);
+
+      const byStep = useMemo(()=>{
+        const groups = new Map();
+        cards.forEach(c => {
+          const { step, prefix: pfx } = parseCardId(c.cardId || '');
+          if (prefix && pfx && pfx !== prefix) return;
+          const stepKey = step || 1;
+          if (!groups.has(stepKey)) groups.set(stepKey, []);
+          groups.get(stepKey).push(c);
+        });
+        return Array.from(groups.entries()).sort((a,b)=>a[0]-b[0]);
+      }, [cards, prefix]);
+
+      const allPrefixes = useMemo(()=>{
+        const s = new Set();
+        cards.forEach(c => { const p = parseCardId(c.cardId||'').prefix; if (p) s.add(p); });
+        return Array.from(s);
+      }, [cards]);
+
+      // 强制刷新数据
+      const forceReload = async () => {
+          try {
+              const res = await fetch('/api/cards');
+              if (res.ok) {
+                  const serverData = await res.json();
+                  if (Array.isArray(serverData)) {
+                      setCards(serverData);
+                      localStorage.setItem('project_cards_v8', JSON.stringify(serverData));
+                      alert('数据已同步最新版本！');
+                  }
+              }
+          } catch (e) {
+              alert('刷新失败，无法连接服务器');
+          }
+      };
+
+      return (
+        <div className="max-w-[1920px] mx-auto p-6">
+          {/* 工具栏 */}
+          <div className="flex items-end justify-between mb-4 max-w-[1920px] mx-auto">
+            <div>
+              <h1 className="text-2xl font-black text-slate-900">项目时间表（16:9）</h1>
+              <p className="text-xs text-gray-500">数据实时同步自项目卡片</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <select className="border rounded p-2 text-sm" value={prefix} onChange={(e)=>setPrefix(e.target.value)}>
+                <option value="">全部前缀</option>
+                {allPrefixes.map(p=> (<option key={p} value={p}>{p}</option>))}
+              </select>
+              <button className="px-3 py-2 border rounded bg-white hover:bg-gray-50 shadow-sm text-blue-600 font-bold" onClick={forceReload}>↻ 刷新数据</button>
+              <button className="px-3 py-2 border rounded bg-white hover:bg-gray-50 shadow-sm" onClick={()=> window.location.href='index.html'}>返回列表</button>
+              <button className="px-3 py-2 border rounded bg-white hover:bg-gray-50 shadow-sm" onClick={()=> exportMarkdown(cards)}>导出 MD</button>
+              <button className="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 shadow-sm" onClick={()=> exportPNG(wrapRef.current)}>导出图片</button>
+            </div>
+          </div>
+
+          {/* 画布区域 */}
+          <div ref={wrapRef} className="w-[1920px] h-[1080px] mx-auto bg-white rounded-xl shadow-lg relative overflow-hidden ring-1 ring-slate-900/5 flex flex-col">
+            {/* 背景底纹 */}
+            <div className="absolute inset-0 pointer-events-none opacity-[0.03] z-0" style={{ 
+              backgroundImage: 'radial-gradient(#64748b 1px, transparent 1px), linear-gradient(135deg, rgba(100,116,139,0.1) 0%, rgba(100,116,139,0.1) 25%, transparent 25%, transparent 50%, rgba(100,116,139,0.1) 50%, rgba(100,116,139,0.1) 75%, transparent 75%, transparent)',
+              backgroundSize: '16px 16px, 32px 32px'
+            }}></div>
+
+            {/* 头部 (Simplified) */}
+            <div className="flex items-center justify-between px-8 py-4 border-b border-slate-200 bg-white/80 backdrop-blur z-10">
+              <div className="text-xl font-black text-slate-800 tracking-tight">PROJECT TIMETABLE</div>
+              <div className="text-sm font-mono text-slate-400">{new Date().toLocaleDateString()}</div>
+            </div>
+
+            {/* 顶部月份轴 (Sticky Header) */}
+            <div className="grid text-sm font-bold text-slate-600 bg-slate-50 border-b border-slate-200 z-10" 
+                 style={{ gridTemplateColumns: '280px 1fr' }}>
+               <div className="px-6 py-3 border-r border-slate-200 bg-slate-100/50">项目列表</div>
+               <div className="grid text-center items-center" style={{ gridTemplateColumns: 'repeat(13, minmax(0, 1fr))' }}>
+                {getTimelineWindow().labels.map((l,i)=> (
+                  <div key={i} className="border-l border-slate-100 py-3">{l.label}</div>
+                ))}
+               </div>
+            </div>
+
+            {/* 主体滚动区 */}
+            <div className="flex-1 overflow-auto custom-scroll z-0 pb-12">
+              {byStep.length === 0 ? (
+                <div className="text-center text-gray-500 py-20 text-xl">暂无数据，请点击“编辑数据”添加内容</div>
+              ) : (
+                byStep.map(([step, items]) => {
+                  const laneColor = ['#3B82F6','#10B981','#F59E0B'][ (step-1) % 3 ];
+                  const bgColor = STEP_BG_COLORS[step] || '#F8FAFC';
+                  
+                  // 聚合逻辑
+                  const { windowMonths } = getTimelineWindow();
+                  const renderItems = (()=>{
+                    const prepared = items.map(c=>{
+                      const periodText = c.data?.['项目周期'] || extractField(c.rawText, '项目周期');
+                      const ranges = parseGanttRanges(periodText);
+                      const main = ranges[0];
+                      const W = main ? toPercent(main).width : 0;
+                      return { c, ranges, main, W };
+                    });
+                    
+                    const buckets = new Map();
+                    // 仅 S1 阶段且宽度<8%的任务进行聚合
+                    if (step===1) {
+                      prepared.forEach(p=>{
+                        if (p.main && p.ranges.length===1 && p.W < 8){
+                          const sIdx = monthIndex(p.main.start.y, p.main.start.m);
+                          const key = String(Math.max(0, sIdx));
+                          if(!buckets.has(key)) buckets.set(key, []);
+                          buckets.get(key).push(p);
+                        }
+                      });
+                    }
+                    
+                    const merged = [];
+                    const used = new Set();
+                    buckets.forEach((list,key)=>{
+                      if(list.length < 2) return; // 至少2个才聚合
+                      list.forEach(p=> used.add(p.c.id||p.c.cardId));
+                      const startIdxs = list.map(p=> monthIndex(p.main.start.y, p.main.start.m));
+                      const endIdxs = list.map(p=> monthIndex(p.main.end.y, p.main.end.m));
+                      const sMin = Math.max(0, Math.min(...startIdxs));
+                      const eMax = Math.min(windowMonths-1, Math.max(...endIdxs));
+                      
+                      const { labels } = getTimelineWindow();
+                      const startLabel = labels[sMin] ? `${labels[sMin].y}年${labels[sMin].m}月` : '';
+                      const endLabel = labels[eMax] ? `${labels[eMax].y}年${labels[eMax].m}月` : '';
+                      
+                      const rawText = `项目名称：S${step} 阶段性任务集合（${list.length}项）\n项目周期：${startLabel}-${endLabel}`;
+                      merged.push({ cardId: `S${step}-AGG-${key}`, rawText, isAgg: true });
+                    });
+                    
+                    const remain = items.filter(c=> !used.has(c.id||c.cardId));
+                    return [...merged, ...remain];
+                  })();
+                  
+                  return (
+                    <div key={step} className="border-b border-slate-200">
+                        {/* Stage Header Row */}
+                        <div className="px-6 py-2 font-black text-lg text-slate-700 flex items-center gap-3 border-b border-slate-100" style={{ backgroundColor: bgColor }}>
+                             <div className="w-3 h-3 rounded-full" style={{ backgroundColor: laneColor }}></div>
+                             阶段 S{step}
+                             <span className="text-xs font-normal text-slate-400 bg-white px-2 py-0.5 rounded border">共 {items.length} 项</span>
+                        </div>
+                        
+                        {/* Project Rows */}
+                        <div className="relative">
+                            {/* Grid Lines (Absolute Background) */}
+                             <div className="absolute inset-0 left-[280px] grid pointer-events-none z-0" style={{ gridTemplateColumns: 'repeat(13, minmax(0, 1fr))' }}>
+                                {[...Array(13)].map((_,i)=>(
+                                  <div key={i} className={`border-l border-slate-100 h-full ${i%2===0?'bg-slate-50/30':''}`}></div>
+                                ))}
+                             </div>
+
+                             {renderItems.map((c, idx) => {
+                                const name = c.isAgg 
+                                    ? (c.rawText.split('\n')[0].replace('项目名称：', '') || '聚合任务')
+                                    : (c.data?.['项目名称'] || extractField(c.rawText, '项目名称') || '未命名项目');
+                                
+                                const periodText = c.data?.['项目周期'] || extractField(c.rawText, '项目周期');
+                                const ranges = parseGanttRanges(periodText);
+                                
+                                return (
+                                    <div key={c.id || c.cardId} className="grid border-b border-slate-100/50 hover:bg-slate-50 transition-colors relative z-10" 
+                                         style={{ gridTemplateColumns: '280px 1fr', minHeight: '44px' }}>
+                                        {/* Left: Project Name */}
+                                        <div className="px-6 py-2 flex flex-col justify-center border-r border-slate-200 bg-white/50 backdrop-blur-sm group cursor-pointer hover:bg-blue-50 transition-colors z-20 relative"
+                                             onClick={() => {
+                                                 const rawTime = c.data?.['项目周期'] || extractField(c.rawText, '项目周期');
+                                                 setEditingCard({ id: c.id || c.cardId, rawTime, cardId: c.cardId });
+                                             }}
+                                             title={c.isAgg ? "聚合任务时间由子任务推算" : "点击编辑时间"}
+                                        >
+                                            <div className={`font-bold text-sm leading-tight mb-1 flex items-center justify-between ${c.isAgg ? 'text-purple-600' : 'text-slate-700'}`}>
+                                                <span>{name}</span>
+                                                {!c.isAgg && (
+                                                    <span className="text-blue-500 bg-blue-100 hover:bg-blue-200 px-1.5 py-0.5 rounded text-[10px] opacity-60 group-hover:opacity-100 transition-opacity">
+                                                        ✎ 编辑
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="text-[10px] text-slate-400 font-mono">{c.cardId}</div>
+                                        </div>
+
+                                        {/* Right: Gantt Bar */}
+                                        <div className="relative h-full">
+                                            <div className="absolute inset-y-0 w-full flex flex-col justify-center py-2">
+                                                {ranges.length === 0 ? (
+                                                    <div className="mx-2 h-2 rounded-full bg-slate-100" title="未定时间"></div>
+                                                ) : (
+                                                    ranges.map((r, ri) => {
+                                                        const { left, width } = toPercent(r);
+                                                        const barColor = c.isAgg ? '#8b5cf6' : (STAGE_COLORS[r.type] || STAGE_COLORS.default);
+                                                        return (
+                                                            <div key={ri} 
+                                                                className="absolute h-6 rounded-md shadow-sm border border-white/20 transition-all hover:brightness-110 hover:scale-y-110"
+                                                                style={{ left: `${left}%`, width: `${width}%`, backgroundColor: barColor, top: ranges.length>1 ? (10 + ri*12)+'px' : 'auto' }}
+                                                                title={`${name}\n${periodText} (${r.type})`}
+                                                            ></div>
+                                                        );
+                                                    })
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                             })}
+                        </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* 页脚 */}
+            <div className="px-8 py-4 bg-slate-50 border-t border-slate-200 flex justify-between items-center text-xs text-slate-400">
+              <span className="font-bold tracking-[0.2em] text-slate-300">CONFIDENTIAL</span>
+              <div>AUTO GENERATED BY SYSTEM</div>
+            </div>
+            
+            {editingCard && (
+                <EditModal 
+                    isOpen={!!editingCard} 
+                    cardId={editingCard.cardId}
+                    initialValue={editingCard.rawTime} 
+                    onClose={()=>setEditingCard(null)} 
+                    onSave={handleSaveTime} 
+                />
+            )}
+          </div>
+        </div>
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>

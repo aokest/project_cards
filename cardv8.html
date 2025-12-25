@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>项目卡片生成器 v9.2 (Final Ultimate)</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap');
+        body { font-family: 'Noto Sans SC', sans-serif; margin: 0; padding: 0; background-color: #f3f4f6; }
+        
+        /* 交互核心样式 */
+        .section-hover-ring { transition: all 0.2s; border: 2px solid transparent; }
+        .section-hover-ring:hover { border-color: rgba(59, 130, 246, 0.3); }
+        .section-selected { border-color: #3b82f6 !important; background-color: rgba(59, 130, 246, 0.05); }
+        
+        /* 复选框交互区域 */
+        .checkbox-area { cursor: pointer; user-select: none; }
+        .text-content-area { cursor: text; user-select: text; }
+        
+        /* 滚动条 */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+    </style>
+</head>
+<body class="h-screen flex overflow-hidden">
+    <div id="root" class="w-full h-full"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useMemo } = React;
+
+        // --- 1. 常量与配置 ---
+        const STORAGE_KEY = 'project_cards_v9_final';
+        const DEFAULT_TEXT = `项目编号：1205-S1-S03
+项目名称：模拟黑客入侵检查
+项目目标：通过模拟黑客攻击，先于黑客主动发现潜在的高风险漏洞与防御盲区，推动纳入紧急修复清单（“红灯计划”），实现风险的超前识别与闭环处置。
+现状分析：
+目前处于黑客事件后期，依然被二次攻击或其他黑客攻击的高概率覆盖。传统响应、修复、加固、自查的方式对于防御难以聚焦在最急迫的风险以及最重要的资产安全防护上。
+项目周期：1月-2月期间，3周
+预算投入：
+入侵模拟检查服务
+8000元/人天，约70人天
+所需支持：
+- [ ] 测试授权。
+- [ ] 约定测试的核心业务资产。
+- [ ] 安排反馈业务情况及修复。
+项目内容：
+模拟真实攻击者思维与技术手段，尝试突破边界、横向移动、获取核心数据或权限。
+记录攻击路径、利用漏洞及潜在危害，输出可操作的修复建议。
+参与部门：信息安全部，IT运维部
+相关产品及解决方案：入侵模拟检查服务、数字风洞健康管理平台
+输出物：
+《数字风洞健康体检报告》：包含攻击路径、风险详情、修复建议。
+“红灯计划”清单：高伤害等级风险列表及修复优先级建议。`;
+
+        // 字段映射配置
+        const FIELD_CONFIG = {
+            '项目目标': { icon: 'target', minHeight: 200 },
+            '现状分析': { icon: 'bar-chart-3', minHeight: 200 },
+            '项目内容': { icon: 'file-text', minHeight: 280 },
+            '所需支持': { icon: 'life-buoy', minHeight: 200, isChecklist: true },
+            '预算投入': { icon: 'coins', minHeight: 200, isBudget: true },
+            '项目周期': { icon: 'clock', minHeight: 260 },
+            '参与部门': { icon: 'users', minHeight: 120 },
+            '相关产品及解决方案': { icon: 'package', minHeight: 120 },
+            '输出物': { icon: 'check-circle-2', minHeight: 180 }
+        };
+
+        const PALETTES = [
+            { name: 'Slate Pro', themeColor: '#0f172a', accentColor: '#f1f5f9', textColor: '#334155', cardBg: '#FFFFFF', budgetColor: '#C5AA99' },
+            { name: 'Deep Blue', themeColor: '#1e3a8a', accentColor: '#eef2ff', textColor: '#0f172a', cardBg: '#FFFFFF', budgetColor: '#0ea5e9' },
+            { name: 'Forest', themeColor: '#166534', accentColor: '#dcfce7', textColor: '#052e1a', cardBg: '#FFFFFF', budgetColor: '#16a34a' },
+            { name: 'Night', themeColor: '#111827', accentColor: '#1f2937', textColor: '#e5e7eb', cardBg: '#0b1220', budgetColor: '#f59e0b' },
+            { name: 'Teal', themeColor: '#0f766e', accentColor: '#ccfbf1', textColor: '#083c3b', cardBg: '#FFFFFF', budgetColor: '#14b8a6' },
+            { name: 'Ink', themeColor: '#1e293b', accentColor: '#e2e8f0', textColor: '#0f172a', cardBg: '#FFFFFF', budgetColor: '#475569' }
+        ];
+
+        // --- 2. 基础组件 ---
+        // Helper for Lucide icon name conversion (kebab-case to PascalCase)
+        const toPascalCase = (str) => {
+            if (!str) return '';
+            return str.replace(/(^\w|-\w)/g, (clear) => clear.replace('-', '').toUpperCase());
+        };
+
+        const Icon = ({ name, size = 20, className = "" }) => {
+            const containerRef = useRef(null);
+            
+            useEffect(() => {
+                if (!name || !window.lucide || !window.lucide.icons) return;
+                
+                try {
+                    const iconName = toPascalCase(name);
+                    const iconNode = window.lucide.icons[iconName];
+                    
+                    if (iconNode) {
+                        const svg = iconNode.toSvg({
+                            'class': className,
+                            'width': size,
+                            'height': size,
+                            'stroke-width': 2
+                        });
+                        if (containerRef.current) {
+                            containerRef.current.innerHTML = svg;
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Icon render failed:', name);
+                }
+            }, [name, size, className]);
+
+            return <span ref={containerRef} style={{ display: 'inline-flex', width: size, height: size }} />;
+        };
+
+        // --- 3. 核心业务组件：CardSection (标准化卡片模块) ---
+        const CardSection = ({ 
+            title, 
+            content, 
+            config, 
+            globalStyles, 
+            isSelected, 
+            onSelect, 
+            onResize,
+            onToggleCheck,
+            customClass = "" 
+        }) => {
+            const { icon, minHeight, isChecklist, isBudget } = FIELD_CONFIG[title] || { icon: 'circle', minHeight: 150 };
+            const currentHeight = config?.minHeight || minHeight;
+            const fontPx = config?.fontPx || 18;
+
+            const handleSectionClick = (e) => {
+                // 如果点击的是交互区域（复选框），不触发选择
+                if (e.target.closest('.interactive-area')) return;
+                // 阻止冒泡，防止触发父级点击
+                e.stopPropagation();
+                e.preventDefault(); // Prevent potential link navigation
+                onSelect(title);
+            };
+
+            const renderContent = () => {
+                if (!content) return <span className="opacity-30 italic">暂无内容</span>;
+
+                if (isBudget) {
+                    return (
+                        <div className="flex flex-col items-center justify-center h-full text-center font-mono font-bold whitespace-pre-wrap">
+                            {content}
+                        </div>
+                    );
+                }
+
+                const lines = content.split('\n').filter(l => l.trim());
+                const isListFormat = isChecklist || lines.some(l => /^(-|\d+\.|\[)/.test(l));
+
+                if (isListFormat) {
+                    return (
+                        <ul className="flex flex-col gap-2">
+                            {lines.map((line, idx) => {
+                                const checkMatch = line.match(/^- \[( |x)\]\s*(.*)/);
+                                const isChecked = checkMatch && checkMatch[1] === 'x';
+                                const cleanText = checkMatch ? checkMatch[2] : line.replace(/^(-|\d+\.)\s*/, '');
+                                
+                                return (
+                                    <li key={idx} className="flex items-start gap-3 relative group">
+                                        <div 
+                                            className="interactive-area mt-1 shrink-0 cursor-pointer text-gray-400 hover:text-blue-500 transition-colors"
+                                            onClick={(e) => { e.stopPropagation(); onToggleCheck(title, line); }}
+                                        >
+                                            {isChecklist || checkMatch ? (
+                                                isChecked ? <Icon name="check-square" size={18} className="text-blue-600" /> : <Icon name="square" size={18} />
+                                            ) : (
+                                                <div className="w-1.5 h-1.5 rounded-full bg-current mt-2 opacity-50"></div>
+                                            )}
+                                        </div>
+                                        <div 
+                                            className={`text-content-area flex-1 ${isChecked ? 'line-through opacity-60' : ''}`}
+                                            onClick={(e) => e.stopPropagation()} 
+                                        >
+                                            {cleanText}
+                                        </div>
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    );
+                }
+                return <div className="whitespace-pre-wrap text-content-area" onClick={e=>e.stopPropagation()}>{content}</div>;
+            };
+
+            return (
+                <div 
+                    className={`rounded-[1.5rem] p-5 border transition-all relative flex flex-col gap-3 overflow-hidden section-hover-ring backdrop-blur-xl ${customClass} ${isSelected ? 'section-selected shadow-lg ring-1 ring-blue-400' : 'border-gray-200/60 bg-white/60 shadow-sm'}`}
+                    style={{ 
+                        height: `${currentHeight}px`,
+                        minHeight: `${currentHeight}px`,
+                        borderColor: isSelected ? '#3b82f6' : `${globalStyles.themeColor}30`,
+                        backgroundColor: isBudget ? globalStyles.budgetColor : (title === '所需支持' ? `${globalStyles.accentColor}50` : undefined)
+                    }}
+                    onClick={handleSectionClick}
+                >
+                    <div className="flex items-center gap-2 font-bold opacity-80 select-none" style={{ color: isBudget ? 'white' : globalStyles.themeColor }}>
+                        <Icon name={icon} size={22} className={isBudget ? 'text-white' : ''} />
+                        <span className="uppercase tracking-wider text-lg">{title}</span>
+                    </div>
+                    <div 
+                        className="flex-1 min-h-0 overflow-hidden" 
+                        style={{ 
+                            fontSize: `${fontPx}px`, 
+                            color: isBudget ? 'white' : globalStyles.textColor,
+                            lineHeight: 1.35
+                        }}
+                    >
+                        {renderContent()}
+                    </div>
+                    {isSelected && (
+                        <div 
+                            className="interactive-area absolute bottom-0 left-0 right-0 h-4 cursor-ns-resize flex items-center justify-center hover:bg-blue-100/50 z-20"
+                            onMouseDown={(e) => {
+                                const startY = e.clientY;
+                                const startH = currentHeight;
+                                const onMove = (ev) => onResize(title, Math.max(150, startH + (ev.clientY - startY)));
+                                const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+                                window.addEventListener('mousemove', onMove);
+                                window.addEventListener('mouseup', onUp);
+                                e.stopPropagation();
+                            }}
+                        >
+                            <div className="w-10 h-1 rounded-full bg-blue-300"></div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // --- 4. 主布局组件：ProjectCard (恢复左右结构 + 底部双栏) ---
+        const ProjectCard = ({ data, styles, sectionConfigs, selectedSection, actions }) => {
+            return (
+                <div 
+                    className="w-[1920px] h-[1080px] relative overflow-hidden flex flex-col p-8 box-border shadow-2xl transition-colors duration-500"
+                    style={{ 
+                        backgroundColor: styles.cardBg,
+                        backgroundImage: `linear-gradient(135deg, ${styles.cardBg} 0%, ${styles.accentColor}20 100%)`
+                    }}
+                    onClick={(e) => { e.stopPropagation(); actions.selectSection(null); }}
+                >
+                    {/* Subtle Texture Overlay */}
+                    <div className="absolute inset-0 opacity-[0.4] pointer-events-none" style={{
+                        backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.08'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+                    }}></div>
+
+                    <div className="absolute top-0 right-0 w-[800px] h-[800px] rounded-full opacity-[0.03] blur-3xl pointer-events-none" style={{ backgroundColor: styles.themeColor }}></div>
+                    <div className="absolute top-12 bottom-12 left-0 w-3 rounded-r-xl" style={{ backgroundColor: styles.themeColor }}></div>
+                    
+                    <header className="flex items-end gap-6 pb-6 border-b-2 mb-6 shrink-0" style={{ borderColor: `${styles.themeColor}20` }}>
+                        <h1 className="text-5xl font-black tracking-tighter leading-none flex-1 truncate" style={{ color: styles.textColor }}>
+                            {data['项目名称'] || '未命名项目'}
+                        </h1>
+                        <div className="text-2xl font-mono font-bold border-2 px-5 py-2 rounded-lg opacity-80" style={{ borderColor: styles.textColor, color: styles.textColor }}>
+                            {data['项目编号'] || 'NO.0000'}
+                        </div>
+                    </header>
+
+                    {/* 主布局：Grid 12 列 */}
+                    <div className="flex-1 grid grid-cols-12 gap-5 min-h-0">
+                        
+                        {/* 左侧 (7列)：目标、现状、内容、支持、预算 */}
+                        <div className="col-span-7 flex flex-col gap-5 h-full min-h-0">
+                            {/* Row 1: 目标 & 现状 */}
+                            <div className="grid grid-cols-2 gap-5 shrink-0">
+                                <CardSection title="项目目标" content={data['项目目标']} config={sectionConfigs['项目目标']} globalStyles={styles} isSelected={selectedSection==='项目目标'} onSelect={actions.selectSection} onResize={actions.resizeSection} onToggleCheck={actions.toggleCheck} />
+                                <CardSection title="现状分析" content={data['现状分析']} config={sectionConfigs['现状分析']} globalStyles={styles} isSelected={selectedSection==='现状分析'} onSelect={actions.selectSection} onResize={actions.resizeSection} onToggleCheck={actions.toggleCheck} />
+                            </div>
+                            
+                            {/* Row 2: 内容 (自适应) */}
+                            <div className="flex-1 min-h-0 flex flex-col">
+                                <CardSection title="项目内容" content={data['项目内容']} config={sectionConfigs['项目内容']} globalStyles={styles} isSelected={selectedSection==='项目内容'} onSelect={actions.selectSection} onResize={actions.resizeSection} onToggleCheck={actions.toggleCheck} customClass="h-full" />
+                            </div>
+
+                            {/* Row 3: 支持 & 预算 (恢复并排布局) */}
+                            <div className="grid grid-cols-2 gap-5 shrink-0">
+                                <CardSection title="所需支持" content={data['所需支持']} config={sectionConfigs['所需支持']} globalStyles={styles} isSelected={selectedSection==='所需支持'} onSelect={actions.selectSection} onResize={actions.resizeSection} onToggleCheck={actions.toggleCheck} />
+                                <CardSection title="预算投入" content={data['预算投入']} config={sectionConfigs['预算投入']} globalStyles={styles} isSelected={selectedSection==='预算投入'} onSelect={actions.selectSection} onResize={actions.resizeSection} onToggleCheck={actions.toggleCheck} />
+                            </div>
+                        </div>
+
+                        {/* 右侧 (5列)：周期、部门、产品、输出物 */}
+                        <div className="col-span-5 flex flex-col gap-5 h-full min-h-0">
+                            <CardSection title="项目周期" content={data['项目周期']} config={sectionConfigs['项目周期']} globalStyles={styles} isSelected={selectedSection==='项目周期'} onSelect={actions.selectSection} onResize={actions.resizeSection} onToggleCheck={actions.toggleCheck} />
+                            
+                            <div className="grid grid-cols-1 gap-5">
+                                <CardSection title="参与部门" content={data['参与部门']} config={sectionConfigs['参与部门']} globalStyles={styles} isSelected={selectedSection==='参与部门'} onSelect={actions.selectSection} onResize={actions.resizeSection} onToggleCheck={actions.toggleCheck} />
+                                <CardSection title="相关产品及解决方案" content={data['相关产品及解决方案']} config={sectionConfigs['相关产品及解决方案']} globalStyles={styles} isSelected={selectedSection==='相关产品及解决方案'} onSelect={actions.selectSection} onResize={actions.resizeSection} onToggleCheck={actions.toggleCheck} />
+                            </div>
+
+                            <div className="flex-1 min-h-0 flex flex-col">
+                                <CardSection title="输出物" content={data['输出物']} config={sectionConfigs['输出物']} globalStyles={styles} isSelected={selectedSection==='输出物'} onSelect={actions.selectSection} onResize={actions.resizeSection} onToggleCheck={actions.toggleCheck} customClass="h-full" />
+                            </div>
+                            
+                            <div className="mt-auto pt-4 flex justify-between items-end opacity-40 shrink-0">
+                                <span className="text-sm font-bold tracking-[0.3em]">CONFIDENTIAL</span>
+                                <div className="flex items-center gap-2 text-sm font-bold">
+                                    <Icon name="activity" size={20} />
+                                    PROJECT CARD
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- 7. AI Compare Modal ---
+        const AICompareModal = ({ isOpen, onClose, originalText, newText, onApply }) => {
+            if (!isOpen) return null;
+            return (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+                    <div className="bg-white rounded-xl shadow-2xl w-[900px] h-[600px] flex flex-col p-6 animate-fade-in">
+                        <div className="flex justify-between items-center border-b pb-4 mb-4">
+                            <h2 className="text-xl font-bold flex items-center gap-2">
+                                <Icon name="sparkles" size={24} className="text-purple-600" />
+                                AI 润色结果确认
+                            </h2>
+                            <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><Icon name="x" size={20} /></button>
+                        </div>
+                        
+                        <div className="flex-1 flex gap-4 min-h-0">
+                            <div className="flex-1 flex flex-col">
+                                <span className="text-sm font-bold text-gray-500 mb-2">原始文本</span>
+                                <textarea 
+                                    className="flex-1 w-full p-4 border rounded-lg bg-gray-50 text-sm font-mono leading-relaxed resize-none" 
+                                    value={originalText} 
+                                    readOnly 
+                                ></textarea>
+                            </div>
+                            <div className="flex items-center justify-center text-gray-300">
+                                <Icon name="arrow-right" size={24} />
+                            </div>
+                            <div className="flex-1 flex flex-col">
+                                <span className="text-sm font-bold text-purple-600 mb-2">AI 润色后</span>
+                                <textarea 
+                                    className="flex-1 w-full p-4 border-2 border-purple-100 rounded-lg bg-white text-sm font-mono leading-relaxed resize-none focus:border-purple-500 outline-none" 
+                                    value={newText} 
+                                    readOnly
+                                ></textarea>
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end gap-3 pt-4 border-t mt-4">
+                            <button className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors" onClick={onClose}>取消</button>
+                            <button className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium shadow-lg shadow-purple-200 transition-all transform hover:scale-105" onClick={onApply}>应用更改</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+        const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
+            const [localConfig, setLocalConfig] = useState(config);
+            useEffect(() => { setLocalConfig(config); }, [config]);
+            
+            const handleSave = () => {
+                onSave(localConfig);
+                // Also save to global config for index.html
+                localStorage.setItem('project_cards_ai_config', JSON.stringify(localConfig));
+                onClose();
+            };
+
+            const exportConfig = () => {
+                const blob = new Blob([JSON.stringify(localConfig, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a'); a.href = url; a.download = 'ai_config.json'; a.click();
+            };
+
+            const importConfig = (file) => {
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        if (data.baseUrl !== undefined || data.apiKey !== undefined) {
+                            setLocalConfig(prev => ({ ...prev, ...data }));
+                            alert('配置已加载');
+                        } else {
+                            alert('无效的配置文件格式');
+                        }
+                    } catch (err) {
+                        alert('无法解析配置文件');
+                    }
+                };
+                reader.readAsText(file);
+            };
+
+            if (!isOpen) return null;
+            return (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+                    <div className="bg-white rounded-xl shadow-2xl w-[500px] p-6 flex flex-col gap-4 animate-fade-in">
+                        <div className="flex justify-between items-center border-b pb-4">
+                            <h2 className="text-xl font-bold flex items-center gap-2">
+                                <Icon name="bot" size={24} className="text-blue-600" />
+                                AI 模型配置
+                            </h2>
+                            <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><Icon name="x" size={20} /></button>
+                        </div>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">API URL</label>
+                                <input className="w-full mt-1 p-2 border rounded bg-gray-50 focus:bg-white focus:border-blue-500 outline-none transition-colors" value={localConfig.baseUrl} onChange={e=>setLocalConfig({...localConfig, baseUrl: e.target.value})} placeholder="https://api.openai.com/v1" />
+                            </div>
+                            <div>
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">API Key</label>
+                                <input className="w-full mt-1 p-2 border rounded bg-gray-50 focus:bg-white focus:border-blue-500 outline-none transition-colors" type="password" value={localConfig.apiKey} onChange={e=>setLocalConfig({...localConfig, apiKey: e.target.value})} placeholder="sk-..." />
+                            </div>
+                            <div>
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Model Name</label>
+                                <input className="w-full mt-1 p-2 border rounded bg-gray-50 focus:bg-white focus:border-blue-500 outline-none transition-colors" value={localConfig.model} onChange={e=>setLocalConfig({...localConfig, model: e.target.value})} placeholder="gpt-3.5-turbo" />
+                            </div>
+                        </div>
+                        <div className="flex justify-between pt-4 border-t mt-2">
+                            <div className="flex gap-2">
+                                <button className="px-3 py-2 border rounded text-gray-600 hover:bg-gray-50 text-xs flex items-center gap-1" onClick={exportConfig}>
+                                    <Icon name="download" size={14} /> 导出配置
+                                </button>
+                                <label className="px-3 py-2 border rounded text-gray-600 hover:bg-gray-50 text-xs flex items-center gap-1 cursor-pointer">
+                                    <Icon name="upload" size={14} /> 导入配置
+                                    <input type="file" className="hidden" accept=".json" onChange={(e)=>importConfig(e.target.files?.[0])} />
+                                </label>
+                            </div>
+                            <div className="flex gap-3">
+                                <button className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors" onClick={onClose}>取消</button>
+                                <button className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium shadow-lg shadow-blue-200 transition-all transform hover:scale-105" onClick={handleSave}>保存配置</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- 6. 根应用 App ---
+        const App = () => {
+            const [rawText, setRawText] = useState(DEFAULT_TEXT);
+            const [parsedData, setParsedData] = useState({});
+            const [selectedSection, setSelectedSection] = useState(null);
+            
+            const [styles, setStyles] = useState({
+                themeColor: '#0f172a', accentColor: '#f1f5f9', textColor: '#334155', cardBg: '#ffffff', budgetColor: '#C5AA99'
+            });
+            const [sectionConfigs, setSectionConfigs] = useState({});
+            
+            const [isAIModalOpen, setIsAIModalOpen] = useState(false);
+            const [isAICompareOpen, setIsAICompareOpen] = useState(false);
+            const [aiResult, setAIResult] = useState('');
+            const [history, setHistory] = useState([]); // For undo
+            const [aiConfig, setAiConfig] = useState({ baseUrl: 'https://api.openai.com/v1', apiKey: '', model: 'gpt-3.5-turbo' });
+            const [isAILoading, setIsAILoading] = useState(false);
+            
+            // New: Card List for Selection
+            const [cardList, setCardList] = useState([]);
+            // Track the original ID of the currently edited card to support renaming/overwriting
+            const [activeCardId, setActiveCardId] = useState(null);
+
+            useEffect(() => {
+                if (!rawText) return;
+                const lines = rawText.split('\n');
+                const newData = {};
+                let currentKey = null;
+                const KEY_MAP = {
+                    '项目名称': '项目名称', '项目目标': '项目目标', '现状分析': '现状分析', 
+                    '项目周期': '项目周期', '预算投入': '预算投入', '所需支持': '所需支持',
+                    '项目内容': '项目内容', '参与部门': '参与部门', '相关产品及解决方案': '相关产品及解决方案',
+                    '输出物': '输出物', '项目编号': '项目编号'
+                };
+                lines.forEach(line => {
+                    const match = line.match(/^([^\uff1a:]+)[\uff1a:](.*)/);
+                    if (match && KEY_MAP[match[1].trim()]) {
+                        currentKey = KEY_MAP[match[1].trim()];
+                        newData[currentKey] = match[2].trim();
+                    } else if (currentKey) {
+                        newData[currentKey] = (newData[currentKey] ? newData[currentKey] + '\n' : '') + line.trim();
+                    }
+                });
+                setParsedData(newData);
+            }, [rawText]);
+
+            const actions = {
+                selectSection: (key) => setSelectedSection(key),
+                resizeSection: (key, height) => setSectionConfigs(prev => ({ ...prev, [key]: { ...(prev[key] || {}), minHeight: height } })),
+                updateFont: (key, size) => setSectionConfigs(prev => ({ ...prev, [key]: { ...(prev[key] || {}), fontPx: size } })),
+                toggleCheck: (key, lineContent) => {
+                    setRawText(prev => {
+                        const lines = prev.split('\n');
+                        return lines.map(l => {
+                            if (l.includes(lineContent.replace(/^- \[( |x)\]\s*/, ''))) {
+                                if (l.includes('- [ ]')) return l.replace('- [ ]', '- [x]');
+                                if (l.includes('- [x]')) return l.replace('- [x]', '- [ ]');
+                                return `- [x] ${l.replace(/^- /, '')}`;
+                            }
+                            return l;
+                        }).join('\n');
+                    });
+                },
+                save: () => {
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify({ rawText, styles, sectionConfigs, aiConfig }));
+                    alert('已保存项目数据');
+                },
+                exportJSON: () => {
+                    const blob = new Blob([JSON.stringify({ rawText, styles, sectionConfigs }, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a'); a.href = url; a.download = 'project_card.json'; a.click();
+                },
+                applyPalette: (p) => setStyles({ themeColor: p.themeColor, accentColor: p.accentColor, textColor: p.textColor, cardBg: p.cardBg, budgetColor: p.budgetColor }),
+                runAI: async () => {
+                    if (!aiConfig.apiKey) { alert('请先配置 AI API Key'); setIsAIModalOpen(true); return; }
+                    setIsAILoading(true);
+                    try {
+                        const response = await fetch(`${aiConfig.baseUrl}/chat/completions`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${aiConfig.apiKey}` },
+                            body: JSON.stringify({
+                                model: aiConfig.model,
+                                messages: [
+                                    { role: 'system', content: '你是一个资深项目管理专家。请润色以下项目卡片内容，使其更加专业、简洁、有条理。请保留原有的键名（如“项目目标：”、“现状分析：”等），只修改内容。请直接输出润色后的文本，不要包含其他解释。' },
+                                    { role: 'user', content: rawText }
+                                ]
+                            })
+                        });
+                        const data = await response.json();
+                        if (data.choices && data.choices[0]) {
+                            setAIResult(data.choices[0].message.content);
+                            setIsAICompareOpen(true);
+                        } else {
+                            throw new Error('API 返回格式错误');
+                        }
+                    } catch (e) {
+                        alert('AI 请求失败: ' + e.message);
+                    } finally {
+                        setIsAILoading(false);
+                    }
+                },
+                applyAI: () => {
+                    setHistory(prev => [...prev, rawText]);
+                    setRawText(aiResult);
+                    setIsAICompareOpen(false);
+                },
+                undo: () => {
+                    if (history.length === 0) return;
+                    const prev = history[history.length - 1];
+                    setRawText(prev);
+                    setHistory(prevHist => prevHist.slice(0, -1));
+                },
+                saveToDB: async () => {
+                    try {
+                        // 1. Get current list
+                        let currentList = [];
+                        try {
+                            const res = await fetch('/api/cards');
+                            if (res.ok) currentList = await res.json();
+                        } catch(e) { console.warn('Fetch failed, using empty list'); }
+                        
+                        // 2. Determine target ID and Card Object
+                        // Use activeCardId if available (editing existing), otherwise create new ID
+                        let targetId = activeCardId;
+                        const projectNum = parsedData['项目编号'];
+                        
+                        // Fallback: if no activeCardId but projectNum exists in list, assume we are editing that one
+                        if (!targetId && projectNum) {
+                            const existing = currentList.find(c => c.cardId === projectNum);
+                            if (existing) targetId = existing.id;
+                        }
+
+                        // If still no targetId, generate new unique ID
+                        if (!targetId) {
+                            targetId = 'CARD-' + Date.now();
+                            setActiveCardId(targetId);
+                        }
+
+                        const cardObj = {
+                            id: targetId,
+                            cardId: projectNum || targetId, // Visual ID (Project Number)
+                            title: parsedData['项目名称'] || '未命名项目',
+                            rawText: rawText,
+                            data: parsedData,
+                            styles: styles, 
+                            sectionConfigs: sectionConfigs, 
+                            isVisible: true,
+                            updatedAt: new Date().toISOString()
+                        };
+
+                        // 3. Update or Append
+                        const idx = currentList.findIndex(c => c.id === targetId);
+                        if (idx >= 0) {
+                            // Preserve existing visibility
+                            if (currentList[idx].isVisible !== undefined) {
+                                cardObj.isVisible = currentList[idx].isVisible;
+                            }
+                            currentList[idx] = cardObj;
+                        } else {
+                            currentList.push(cardObj);
+                        }
+
+                        // 4. Save back
+                        const saveRes = await fetch('/api/cards', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(currentList)
+                        });
+
+                        if (saveRes.ok) {
+                            setCardList(currentList); // Update dropdown immediately
+                            // Update URL to ensure refresh stays on this card
+                            const newUrl = new URL(window.location);
+                            newUrl.searchParams.set('id', cardObj.cardId || cardObj.id);
+                            window.history.pushState({}, '', newUrl);
+                            
+                            alert('已同步至数据库/时间表！');
+                        } else {
+                            throw new Error('Server returned ' + saveRes.status);
+                        }
+                    } catch(e) {
+                        alert('同步失败: ' + e.message);
+                    }
+                }
+            };
+
+            // Init Load
+            useEffect(() => {
+                // 1. Load Local Config (Styles, AI)
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved) {
+                    try {
+                        const data = JSON.parse(saved);
+                        // Do not overwrite rawText immediately, prefer DB if available
+                        if(data.styles) setStyles(data.styles);
+                        if(data.sectionConfigs) setSectionConfigs(data.sectionConfigs);
+                        if(data.aiConfig) setAiConfig(data.aiConfig);
+                    } catch(e) {}
+                }
+
+                // 1.5 Load Global AI Config (Sync from Index)
+                const globalAI = localStorage.getItem('project_cards_ai_config');
+                if (globalAI) {
+                    try {
+                        const gConfig = JSON.parse(globalAI);
+                        // If local AI config is default/empty, use global
+                        setAiConfig(prev => (!prev.apiKey ? { ...prev, ...gConfig } : prev));
+                    } catch(e) {}
+                }
+
+                // 2. Load Data from DB
+                const fetchCards = async () => {
+                    try {
+                        const res = await fetch('/api/cards');
+                        if (res.ok) {
+                            const list = await res.json();
+                            setCardList(list);
+                            if (list.length > 0) {
+                                // Find latest or by ID
+                                const urlParams = new URLSearchParams(window.location.search);
+                                const id = urlParams.get('id');
+                                const target = id ? list.find(c => c.cardId === id || c.id === id) : list[list.length - 1]; // Default to latest
+                                
+                                if (target) {
+                                    setRawText(target.rawText || DEFAULT_TEXT);
+                                    if (target.styles) setStyles(target.styles);
+                                    if (target.sectionConfigs) setSectionConfigs(target.sectionConfigs);
+                                    setActiveCardId(target.id);
+                                    console.log("Loaded card:", target.cardId);
+                                }
+                            }
+                        }
+                    } catch(e) {
+                        console.error("Failed to load from DB", e);
+                        // Fallback to local storage text if DB fails
+                        if (saved) {
+                            try {
+                                const data = JSON.parse(saved);
+                                if(data.rawText) setRawText(data.rawText);
+                            } catch(e){}
+                        }
+                    }
+                };
+                fetchCards();
+            }, []);
+
+            const handleCardChange = (e) => {
+                const id = e.target.value;
+                const target = cardList.find(c => c.id === id || c.cardId === id);
+                if (target) {
+                    setRawText(target.rawText || DEFAULT_TEXT);
+                    if (target.styles) setStyles(target.styles);
+                    if (target.sectionConfigs) setSectionConfigs(target.sectionConfigs);
+                    setActiveCardId(target.id);
+                    // Update URL without reload
+                    const newUrl = new URL(window.location);
+                    newUrl.searchParams.set('id', target.cardId || target.id);
+                    window.history.pushState({}, '', newUrl);
+                }
+            };
+
+            return (
+                <div className="flex h-full">
+                    <div className="w-96 bg-white border-r border-gray-200 flex flex-col shrink-0 z-10 shadow-xl">
+                        <div className="p-4 border-b bg-gray-50 flex justify-between items-center shrink-0">
+                            <h2 className="font-bold text-lg flex items-center gap-2 text-gray-800">
+                                <Icon name="settings-2" size={20} />
+                                控制台
+                            </h2>
+                            <button onClick={()=>setIsAIModalOpen(true)} className="text-blue-600 text-sm hover:underline flex items-center gap-1">
+                                <Icon name="bot" size={14} /> AI 设置
+                            </button>
+                        </div>
+                        
+                        <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scroll">
+                            <div className="flex flex-col gap-2">
+                                <div className="flex justify-between items-center">
+                                    <label className="block text-xs font-bold text-gray-500 uppercase">选择卡片</label>
+                                    <span className="text-xs text-gray-400">{cardList.length} 个项目</span>
+                                </div>
+                                <select 
+                                    className="w-full p-2 border rounded-lg text-sm bg-gray-50 focus:bg-white outline-none"
+                                    onChange={handleCardChange}
+                                    value={parsedData['项目编号'] || ''}
+                                >
+                                    <option value="" disabled>选择已有项目...</option>
+                                    {cardList.map(c => (
+                                        <option key={c.id || c.cardId} value={c.id || c.cardId}>
+                                            {c.cardId} - {c.data?.['项目名称'] || '未命名'}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="flex flex-col gap-2">
+                                <div className="flex justify-between items-center">
+                                    <label className="block text-xs font-bold text-gray-500 uppercase">内容编辑</label>
+                                    <button 
+                                        onClick={actions.runAI} 
+                                        disabled={isAILoading}
+                                        className={`text-xs px-2 py-1 rounded flex items-center gap-1 transition-colors ${isAILoading ? 'bg-gray-200 text-gray-500' : 'bg-purple-100 text-purple-700 hover:bg-purple-200'}`}
+                                    >
+                                        <Icon name={isAILoading ? "loader-2" : "sparkles"} size={12} className={isAILoading ? "animate-spin" : ""} />
+                                        {isAILoading ? 'AI 思考中...' : 'AI 一键润色'}
+                                    </button>
+                                </div>
+                                <textarea 
+                                    className="w-full h-96 p-3 border rounded-lg text-sm font-mono leading-relaxed outline-none resize-none bg-gray-50 focus:bg-white focus:ring-2 ring-blue-100 transition-all" 
+                                    value={rawText} 
+                                    onChange={e => setRawText(e.target.value)}
+                                ></textarea>
+                                {history.length > 0 && (
+                                    <div className="flex justify-end">
+                                        <button onClick={actions.undo} className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1">
+                                            <Icon name="undo-2" size={12} /> 撤销更改
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">配色预设</label>
+                                <div className="grid grid-cols-3 gap-2">
+                                    {PALETTES.map(p => (
+                                        <button key={p.name} className="flex items-center gap-1 px-2 py-1.5 border rounded text-xs hover:bg-gray-50 transition-colors" onClick={()=>actions.applyPalette(p)}>
+                                            <div className="w-3 h-3 rounded-full shadow-sm" style={{backgroundColor: p.themeColor}}></div>
+                                            {p.name}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {selectedSection ? (
+                                <div className="p-4 bg-blue-50 rounded-xl border border-blue-100 animate-fade-in">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <span className="font-bold text-blue-900 flex items-center gap-2">
+                                            <Icon name="sliders" size={16} />
+                                            {selectedSection}
+                                        </span>
+                                        <button onClick={()=>setSelectedSection(null)} className="text-xs text-blue-500 hover:underline">完成</button>
+                                    </div>
+                                    <div className="space-y-4">
+                                        <div>
+                                            <div className="flex justify-between text-xs text-blue-800 mb-1 font-medium"><span>字体大小</span><span>{sectionConfigs[selectedSection]?.fontPx || 16}px</span></div>
+                                            <input type="range" min="12" max="48" value={sectionConfigs[selectedSection]?.fontPx || 16} onChange={e => actions.updateFont(selectedSection, parseInt(e.target.value))} className="w-full accent-blue-600 h-1 bg-blue-200 rounded-lg appearance-none cursor-pointer" />
+                                        </div>
+                                        <div>
+                                            <div className="flex justify-between text-xs text-blue-800 mb-1 font-medium"><span>模块高度</span><span>{sectionConfigs[selectedSection]?.minHeight || 'Auto'}</span></div>
+                                            <input type="range" min="100" max="800" value={sectionConfigs[selectedSection]?.minHeight || 200} onChange={e => actions.resizeSection(selectedSection, parseInt(e.target.value))} className="w-full accent-blue-600 h-1 bg-blue-200 rounded-lg appearance-none cursor-pointer" />
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="p-6 bg-gray-50 rounded-xl border border-dashed border-gray-300 text-center text-xs text-gray-400 flex flex-col items-center gap-2">
+                                    <Icon name="mouse-pointer-2" size={24} className="opacity-50" />
+                                    点击右侧卡片模块<br/>调整字体与高度
+                                </div>
+                            )}
+
+                            <div className="grid grid-cols-2 gap-3 pt-4 border-t">
+                                <button onClick={actions.save} className="bg-gray-900 text-white py-2.5 rounded-lg hover:bg-black font-medium transition-all shadow-lg shadow-gray-200 flex items-center justify-center gap-2">
+                                    <Icon name="save" size={16} /> 保存
+                                </button>
+                                <button onClick={actions.saveToDB} className="bg-blue-600 text-white py-2.5 rounded-lg hover:bg-blue-700 font-medium transition-all shadow-lg shadow-blue-200 flex items-center justify-center gap-2">
+                                    <Icon name="database" size={16} /> 同步数据库
+                                </button>
+                                <button onClick={actions.exportJSON} className="border border-gray-300 text-gray-700 py-2.5 rounded-lg hover:bg-gray-50 font-medium transition-colors flex items-center justify-center gap-2">
+                                    <Icon name="download" size={16} /> 导出
+                                </button>
+                                <button onClick={()=>window.location.href='index.html'} className="border border-gray-300 text-gray-700 py-2.5 rounded-lg hover:bg-gray-50 font-medium transition-colors flex items-center justify-center gap-2">
+                                    <Icon name="home" size={16} /> 返回首页
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex-1 bg-gray-200 overflow-hidden flex items-center justify-center relative bg-grid-pattern">
+                        <div className="absolute inset-0 opacity-[0.03]" style={{backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '20px 20px'}}></div>
+                        <div className="absolute inset-0 opacity-[0.02]" style={{
+                            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='1'/%3E%3C/svg%3E")`
+                        }}></div>
+                        <div style={{ transform: 'scale(0.65)', transformOrigin: 'center', boxShadow: '0 50px 100px -20px rgba(0, 0, 0, 0.25)' }}>
+                            <ProjectCard data={parsedData} styles={styles} sectionConfigs={sectionConfigs} selectedSection={selectedSection} actions={actions} />
+                        </div>
+                    </div>
+
+                    <AIConfigModal isOpen={isAIModalOpen} onClose={()=>setIsAIModalOpen(false)} config={aiConfig} onSave={setAiConfig} />
+                    <AICompareModal 
+                        isOpen={isAICompareOpen} 
+                        onClose={()=>setIsAICompareOpen(false)} 
+                        originalText={rawText} 
+                        newText={aiResult} 
+                        onApply={actions.applyAI} 
+                    />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

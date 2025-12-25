@@ -1,0 +1,12 @@
+project_cards.json
+__pycache__/
+*.pyc
+.DS_Store
+venv/
+.env
+.idea/
+.vscode/
+*.log
+*.swp
+config.json
+ai_config.json

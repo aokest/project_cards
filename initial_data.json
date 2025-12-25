@@ -1,0 +1,618 @@
+[
+  {
+    "id": "CARD-1",
+    "updatedAt": "2025-12-24T18:48:24.619326",
+    "cardId": "1205-S1-S01",
+    "title": "泄露情报监控",
+    "rawText": "项目编号：1205-S1-S01\n项目名称：泄露情报监控\n项目周期：2025年12月-2026年12月\n项目目标：[待补充]\n现状分析：[待补充]\n项目内容：[待补充]\n所需支持：[待补充]\n预算投入：[待补充]\n参与部门：[待补充]\n相关产品及解决方案：[待补充]\n输出物：[待补充]",
+    "themeColor": "#0f172a",
+    "accentColor": "#f1f5f9",
+    "textColor": "#334155",
+    "cardBg": "#FFFFFF",
+    "budgetColor": "#b45309",
+    "sectionConfig": {
+      "项目周期": {
+        "fontPx": 16,
+        "minHeight": 260
+      },
+      "现状分析": {
+        "fontPx": 16,
+        "minHeight": 220
+      },
+      "预算投入": {
+        "fontPx": 18,
+        "minHeight": 200
+      },
+      "项目目标": {
+        "fontPx": 16,
+        "minHeight": 200
+      },
+      "项目内容": {
+        "fontPx": 16,
+        "minHeight": 280
+      },
+      "所需支持": {
+        "fontPx": 16,
+        "minHeight": 200
+      },
+      "参与部门": {
+        "fontPx": 16,
+        "minHeight": 120
+      },
+      "相关产品及解决方案": {
+        "fontPx": 16,
+        "minHeight": 120
+      },
+      "输出物": {
+        "fontPx": 16,
+        "minHeight": 180
+      }
+    },
+    "layoutConfig": {
+      "mainRightCols": 5,
+      "row3BudgetCols": 5,
+      "outputSpan": 5,
+      "outputAlign": "right"
+    }
+  },
+  {
+    "id": "CARD-2",
+    "updatedAt": "2025-12-24T18:48:24.619351",
+    "cardId": "1205-S1-P01",
+    "title": "强化攻击诱捕能力",
+    "rawText": "项目编号：1205-S1-P01\n项目名称：强化攻击诱捕能力\n项目周期：25年12月-26年1月\n项目目标：[待补充]\n现状分析：[待补充]\n项目内容：[待补充]\n所需支持：[待补充]\n预算投入：[待补充]\n参与部门：[待补充]\n相关产品及解决方案：[待补充]\n输出物：[待补充]",
+    "themeColor": "#0f172a",
+    "accentColor": "#f1f5f9",
+    "textColor": "#334155",
+    "cardBg": "#FFFFFF",
+    "budgetColor": "#b45309",
+    "sectionConfig": {
+      "项目周期": {
+        "fontPx": 16,
+        "minHeight": 260
+      },
+      "现状分析": {
+        "fontPx": 16,
+        "minHeight": 220
+      },
+      "预算投入": {
+        "fontPx": 18,
+        "minHeight": 200
+      },
+      "项目目标": {
+        "fontPx": 16,
+        "minHeight": 200
+      },
+      "项目内容": {
+        "fontPx": 16,
+        "minHeight": 280
+      },
+      "所需支持": {
+        "fontPx": 16,
+        "minHeight": 200
+      },
+      "参与部门": {
+        "fontPx": 16,
+        "minHeight": 120
+      },
+      "相关产品及解决方案": {
+        "fontPx": 16,
+        "minHeight": 120
+      },
+      "输出物": {
+        "fontPx": 16,
+        "minHeight": 180
+      }
+    },
+    "layoutConfig": {
+      "mainRightCols": 5,
+      "row3BudgetCols": 5,
+      "outputSpan": 5,
+      "outputAlign": "right"
+    }
+  },
+  {
+    "id": "CARD-3",
+    "updatedAt": "2025-12-24T18:48:24.619356",
+    "cardId": "1205-S1-S02",
+    "title": "数字风洞数字健康管理服务",
+    "rawText": "项目编号：1205-S1-S02\n项目名称：数字风洞数字健康管理服务\n项目周期：2026年1月；2026年2月-4月；2026年5月-6月\n项目目标：[待补充]\n现状分析：[待补充]\n项目内容：[待补充]\n所需支持：[待补充]\n预算投入：[待补充]\n参与部门：[待补充]\n相关产品及解决方案：[待补充]\n输出物：[待补充]",
+    "themeColor": "#0f172a",
+    "accentColor": "#f1f5f9",
+    "textColor": "#334155",
+    "cardBg": "#FFFFFF",
+    "budgetColor": "#b45309",
+    "sectionConfig": {
+      "项目周期": {
+        "fontPx": 16,
+        "minHeight": 260
+      },
+      "现状分析": {
+        "fontPx": 16,
+        "minHeight": 220
+      },
+      "预算投入": {
+        "fontPx": 18,
+        "minHeight": 200
+      },
+      "项目目标": {
+        "fontPx": 16,
+        "minHeight": 200
+      },
+      "项目内容": {
+        "fontPx": 16,
+        "minHeight": 280
+      },
+      "所需支持": {
+        "fontPx": 16,
+        "minHeight": 200
+      },
+      "参与部门": {
+        "fontPx": 16,
+        "minHeight": 120
+      },
+      "相关产品及解决方案": {
+        "fontPx": 16,
+        "minHeight": 120
+      },
+      "输出物": {
+        "fontPx": 16,
+        "minHeight": 180
+      }
+    },
+    "layoutConfig": {
+      "mainRightCols": 5,
+      "row3BudgetCols": 5,
+      "outputSpan": 5,
+      "outputAlign": "right"
+    }
+  },
+  {
+    "id": "CARD-4",
+    "updatedAt": "2025-12-24T18:48:24.619359",
+    "cardId": "1205-S1-S03",
+    "title": "模拟黑客入侵检查",
+    "rawText": "项目编号：1205-S1-S03\n项目名称：模拟黑客入侵检查\n项目周期：2026年1月-2026年2月\n项目目标：[待补充]\n现状分析：[待补充]\n项目内容：[待补充]\n所需支持：[待补充]\n预算投入：[待补充]\n参与部门：[待补充]\n相关产品及解决方案：[待补充]\n输出物：[待补充]",
+    "themeColor": "#0f172a",
+    "accentColor": "#f1f5f9",
+    "textColor": "#334155",
+    "cardBg": "#FFFFFF",
+    "budgetColor": "#b45309",
+    "sectionConfig": {
+      "项目周期": {
+        "fontPx": 16,
+        "minHeight": 260
+      },
+      "现状分析": {
+        "fontPx": 16,
+        "minHeight": 220
+      },
+      "预算投入": {
+        "fontPx": 18,
+        "minHeight": 200
+      },
+      "项目目标": {
+        "fontPx": 16,
+        "minHeight": 200
+      },
+      "项目内容": {
+        "fontPx": 16,
+        "minHeight": 280
+      },
+      "所需支持": {
+        "fontPx": 16,
+        "minHeight": 200
+      },
+      "参与部门": {
+        "fontPx": 16,
+        "minHeight": 120
+      },
+      "相关产品及解决方案": {
+        "fontPx": 16,
+        "minHeight": 120
+      },
+      "输出物": {
+        "fontPx": 16,
+        "minHeight": 180
+      }
+    },
+    "layoutConfig": {
+      "mainRightCols": 5,
+      "row3BudgetCols": 5,
+      "outputSpan": 5,
+      "outputAlign": "right"
+    }
+  },
+  {
+    "id": "CARD-5",
+    "updatedAt": "2025-12-24T18:48:24.619362",
+    "cardId": "1205-S2-P01",
+    "title": "全栈诱捕能力强化",
+    "rawText": "项目编号：1205-S2-P01\n项目名称：全栈诱捕能力强化\n项目周期：2026年3月-2026年5月\n项目目标：[待补充]\n现状分析：[待补充]\n项目内容：[待补充]\n所需支持：[待补充]\n预算投入：[待补充]\n参与部门：[待补充]\n相关产品及解决方案：[待补充]\n输出物：[待补充]",
+    "themeColor": "#0f172a",
+    "accentColor": "#f1f5f9",
+    "textColor": "#334155",
+    "cardBg": "#FFFFFF",
+    "budgetColor": "#b45309",
+    "sectionConfig": {
+      "项目周期": {
+        "fontPx": 16,
+        "minHeight": 260
+      },
+      "现状分析": {
+        "fontPx": 16,
+        "minHeight": 220
+      },
+      "预算投入": {
+        "fontPx": 18,
+        "minHeight": 200
+      },
+      "项目目标": {
+        "fontPx": 16,
+        "minHeight": 200
+      },
+      "项目内容": {
+        "fontPx": 16,
+        "minHeight": 280
+      },
+      "所需支持": {
+        "fontPx": 16,
+        "minHeight": 200
+      },
+      "参与部门": {
+        "fontPx": 16,
+        "minHeight": 120
+      },
+      "相关产品及解决方案": {
+        "fontPx": 16,
+        "minHeight": 120
+      },
+      "输出物": {
+        "fontPx": 16,
+        "minHeight": 180
+      }
+    },
+    "layoutConfig": {
+      "mainRightCols": 5,
+      "row3BudgetCols": 5,
+      "outputSpan": 5,
+      "outputAlign": "right"
+    }
+  },
+  {
+    "id": "CARD-6",
+    "updatedAt": "2025-12-24T18:48:24.619365",
+    "cardId": "1205-S2-S01",
+    "title": "攻防演练",
+    "rawText": "项目编号：1205-S2-S01\n项目名称：攻防演练\n项目周期：2026年4月-6月\n项目目标：[待补充]\n现状分析：[待补充]\n项目内容：[待补充]\n所需支持：[待补充]\n预算投入：[待补充]\n参与部门：[待补充]\n相关产品及解决方案：[待补充]\n输出物：[待补充]",
+    "themeColor": "#0f172a",
+    "accentColor": "#f1f5f9",
+    "textColor": "#334155",
+    "cardBg": "#FFFFFF",
+    "budgetColor": "#b45309",
+    "sectionConfig": {
+      "项目周期": {
+        "fontPx": 16,
+        "minHeight": 260
+      },
+      "现状分析": {
+        "fontPx": 16,
+        "minHeight": 220
+      },
+      "预算投入": {
+        "fontPx": 18,
+        "minHeight": 200
+      },
+      "项目目标": {
+        "fontPx": 16,
+        "minHeight": 200
+      },
+      "项目内容": {
+        "fontPx": 16,
+        "minHeight": 280
+      },
+      "所需支持": {
+        "fontPx": 16,
+        "minHeight": 200
+      },
+      "参与部门": {
+        "fontPx": 16,
+        "minHeight": 120
+      },
+      "相关产品及解决方案": {
+        "fontPx": 16,
+        "minHeight": 120
+      },
+      "输出物": {
+        "fontPx": 16,
+        "minHeight": 180
+      }
+    },
+    "layoutConfig": {
+      "mainRightCols": 5,
+      "row3BudgetCols": 5,
+      "outputSpan": 5,
+      "outputAlign": "right"
+    }
+  },
+  {
+    "id": "CARD-7",
+    "updatedAt": "2025-12-24T18:48:24.619368",
+    "cardId": "1205-S2-S02",
+    "title": "季度黑客模拟巡检",
+    "rawText": "项目编号：1205-S2-S02\n项目名称：季度黑客模拟巡检\n项目周期：2026年5月-6月；11月-12月\n项目目标：[待补充]\n现状分析：[待补充]\n项目内容：[待补充]\n所需支持：[待补充]\n预算投入：[待补充]\n参与部门：[待补充]\n相关产品及解决方案：[待补充]\n输出物：[待补充]",
+    "themeColor": "#0f172a",
+    "accentColor": "#f1f5f9",
+    "textColor": "#334155",
+    "cardBg": "#FFFFFF",
+    "budgetColor": "#b45309",
+    "sectionConfig": {
+      "项目周期": {
+        "fontPx": 16,
+        "minHeight": 260
+      },
+      "现状分析": {
+        "fontPx": 16,
+        "minHeight": 220
+      },
+      "预算投入": {
+        "fontPx": 18,
+        "minHeight": 200
+      },
+      "项目目标": {
+        "fontPx": 16,
+        "minHeight": 200
+      },
+      "项目内容": {
+        "fontPx": 16,
+        "minHeight": 280
+      },
+      "所需支持": {
+        "fontPx": 16,
+        "minHeight": 200
+      },
+      "参与部门": {
+        "fontPx": 16,
+        "minHeight": 120
+      },
+      "相关产品及解决方案": {
+        "fontPx": 16,
+        "minHeight": 120
+      },
+      "输出物": {
+        "fontPx": 16,
+        "minHeight": 180
+      }
+    },
+    "layoutConfig": {
+      "mainRightCols": 5,
+      "row3BudgetCols": 5,
+      "outputSpan": 5,
+      "outputAlign": "right"
+    }
+  },
+  {
+    "id": "CARD-8",
+    "updatedAt": "2025-12-24T18:48:24.619372",
+    "cardId": "1205-S2-S03",
+    "title": "SRC中心建设及互联网众测运营",
+    "rawText": "项目编号：1205-S2-S03\n项目名称：SRC中心建设及互联网众测运营\n项目周期：2026年5月-6月；11月-12月\n项目目标：[待补充]\n现状分析：[待补充]\n项目内容：[待补充]\n所需支持：[待补充]\n预算投入：[待补充]\n参与部门：[待补充]\n相关产品及解决方案：[待补充]\n输出物：[待补充]",
+    "themeColor": "#0f172a",
+    "accentColor": "#f1f5f9",
+    "textColor": "#334155",
+    "cardBg": "#FFFFFF",
+    "budgetColor": "#b45309",
+    "sectionConfig": {
+      "项目周期": {
+        "fontPx": 16,
+        "minHeight": 260
+      },
+      "现状分析": {
+        "fontPx": 16,
+        "minHeight": 220
+      },
+      "预算投入": {
+        "fontPx": 18,
+        "minHeight": 200
+      },
+      "项目目标": {
+        "fontPx": 16,
+        "minHeight": 200
+      },
+      "项目内容": {
+        "fontPx": 16,
+        "minHeight": 280
+      },
+      "所需支持": {
+        "fontPx": 16,
+        "minHeight": 200
+      },
+      "参与部门": {
+        "fontPx": 16,
+        "minHeight": 120
+      },
+      "相关产品及解决方案": {
+        "fontPx": 16,
+        "minHeight": 120
+      },
+      "输出物": {
+        "fontPx": 16,
+        "minHeight": 180
+      }
+    },
+    "layoutConfig": {
+      "mainRightCols": 5,
+      "row3BudgetCols": 5,
+      "outputSpan": 5,
+      "outputAlign": "right"
+    }
+  },
+  {
+    "id": "CARD-9",
+    "updatedAt": "2025-12-24T18:48:24.619377",
+    "cardId": "1205-S2-S05",
+    "title": "研发运维安全能力考核认证",
+    "rawText": "项目编号：1205-S2-S05\n项目名称：研发运维安全能力考核认证\n项目周期：2026年4月-5月；9月-10月\n项目目标：[待补充]\n现状分析：[待补充]\n项目内容：[待补充]\n所需支持：[待补充]\n预算投入：[待补充]\n参与部门：[待补充]\n相关产品及解决方案：[待补充]\n输出物：[待补充]",
+    "themeColor": "#0f172a",
+    "accentColor": "#f1f5f9",
+    "textColor": "#334155",
+    "cardBg": "#FFFFFF",
+    "budgetColor": "#b45309",
+    "sectionConfig": {
+      "项目周期": {
+        "fontPx": 16,
+        "minHeight": 260
+      },
+      "现状分析": {
+        "fontPx": 16,
+        "minHeight": 220
+      },
+      "预算投入": {
+        "fontPx": 18,
+        "minHeight": 200
+      },
+      "项目目标": {
+        "fontPx": 16,
+        "minHeight": 200
+      },
+      "项目内容": {
+        "fontPx": 16,
+        "minHeight": 280
+      },
+      "所需支持": {
+        "fontPx": 16,
+        "minHeight": 200
+      },
+      "参与部门": {
+        "fontPx": 16,
+        "minHeight": 120
+      },
+      "相关产品及解决方案": {
+        "fontPx": 16,
+        "minHeight": 120
+      },
+      "输出物": {
+        "fontPx": 16,
+        "minHeight": 180
+      }
+    },
+    "layoutConfig": {
+      "mainRightCols": 5,
+      "row3BudgetCols": 5,
+      "outputSpan": 5,
+      "outputAlign": "right"
+    }
+  },
+  {
+    "id": "CARD-10",
+    "updatedAt": "2025-12-24T18:48:24.619381",
+    "cardId": "1205-S3-S1",
+    "title": "供应链安全管理",
+    "rawText": "项目编号：1205-S3-S1\n项目名称：供应链安全管理\n项目周期：2026年7月-9月\n项目目标：[待补充]\n现状分析：[待补充]\n项目内容：[待补充]\n所需支持：[待补充]\n预算投入：[待补充]\n参与部门：[待补充]\n相关产品及解决方案：[待补充]\n输出物：[待补充]",
+    "themeColor": "#0f172a",
+    "accentColor": "#f1f5f9",
+    "textColor": "#334155",
+    "cardBg": "#FFFFFF",
+    "budgetColor": "#b45309",
+    "sectionConfig": {
+      "项目周期": {
+        "fontPx": 16,
+        "minHeight": 260
+      },
+      "现状分析": {
+        "fontPx": 16,
+        "minHeight": 220
+      },
+      "预算投入": {
+        "fontPx": 18,
+        "minHeight": 200
+      },
+      "项目目标": {
+        "fontPx": 16,
+        "minHeight": 200
+      },
+      "项目内容": {
+        "fontPx": 16,
+        "minHeight": 280
+      },
+      "所需支持": {
+        "fontPx": 16,
+        "minHeight": 200
+      },
+      "参与部门": {
+        "fontPx": 16,
+        "minHeight": 120
+      },
+      "相关产品及解决方案": {
+        "fontPx": 16,
+        "minHeight": 120
+      },
+      "输出物": {
+        "fontPx": 16,
+        "minHeight": 180
+      }
+    },
+    "layoutConfig": {
+      "mainRightCols": 5,
+      "row3BudgetCols": 5,
+      "outputSpan": 5,
+      "outputAlign": "right"
+    }
+  },
+  {
+    "id": "CARD-11",
+    "updatedAt": "2025-12-24T18:48:24.619385",
+    "cardId": "1205-S3-S2",
+    "title": "人员安全意识培训与安全文化建设",
+    "rawText": "项目编号：1205-S3-S2\n项目名称：人员安全意识培训与安全文化建设\n项目周期：2026年10月 网络安全宣传周\n项目目标：[待补充]\n现状分析：[待补充]\n项目内容：[待补充]\n所需支持：[待补充]\n预算投入：[待补充]\n参与部门：[待补充]\n相关产品及解决方案：[待补充]\n输出物：[待补充]",
+    "themeColor": "#0f172a",
+    "accentColor": "#f1f5f9",
+    "textColor": "#334155",
+    "cardBg": "#FFFFFF",
+    "budgetColor": "#b45309",
+    "sectionConfig": {
+      "项目周期": {
+        "fontPx": 16,
+        "minHeight": 260
+      },
+      "现状分析": {
+        "fontPx": 16,
+        "minHeight": 220
+      },
+      "预算投入": {
+        "fontPx": 18,
+        "minHeight": 200
+      },
+      "项目目标": {
+        "fontPx": 16,
+        "minHeight": 200
+      },
+      "项目内容": {
+        "fontPx": 16,
+        "minHeight": 280
+      },
+      "所需支持": {
+        "fontPx": 16,
+        "minHeight": 200
+      },
+      "参与部门": {
+        "fontPx": 16,
+        "minHeight": 120
+      },
+      "相关产品及解决方案": {
+        "fontPx": 16,
+        "minHeight": 120
+      },
+      "输出物": {
+        "fontPx": 16,
+        "minHeight": 180
+      }
+    },
+    "layoutConfig": {
+      "mainRightCols": 5,
+      "row3BudgetCols": 5,
+      "outputSpan": 5,
+      "outputAlign": "right"
+    }
+  }
+]
