@@ -1,12 +1,9 @@
+name: project-generator
 services:
   web:
     build: .
     ports:
       - "18889:18889"
     volumes:
-      - ./project_cards.json:/app/project_cards.json
-      - ./index.html:/app/index.html
-      - ./project_timeline.html:/app/project_timeline.html
-      - ./cardv8.html:/app/cardv8.html
-      - ./projects:/app/projects
+      - .:/app
     restart: always

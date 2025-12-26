@@ -1,74 +1,5 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>项目时间表 · 16:9</title>
-  <!-- React & Babel -->
-  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.development.js"></script>
-  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.development.js"></script>
-  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
-  <!-- Tailwind -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- html2canvas -->
-  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
-  
-  <script>
-    window.onerror = function(message, source, lineno, colno, error) {
-        console.error("Global Error:", message, error);
-        const root = document.getElementById('root');
-        if (root) {
-            root.innerHTML = `<div style="color:red;padding:20px;"><h1>Fatal Error</h1><p>${message}</p><p>${source}:${lineno}</p></div>`;
-        }
-    };
-  </script>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;600;800&display=swap');
-    body { font-family: 'Noto Sans SC', sans-serif; }
-    /* 自定义滚动条 */
-    .custom-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
-    .custom-scroll::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 4px; }
-    .custom-scroll::-webkit-scrollbar-track { background-color: #f1f5f9; }
 
-    /* Project Group Header */
-    .project-group-header { 
-        grid-column: 1 / -1; 
-        background: #e0f2fe; 
-        padding: 8px 16px; 
-        font-weight: bold; 
-        color: #0369a1; 
-        border-bottom: 1px solid #cbd5e1;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        cursor: pointer;
-    }
-    .project-group-header:hover { background: #bae6fd; }
-  </style>
-</head>
-<body class="bg-gray-100 text-slate-800">
-  <div id="root"></div>
-
-  <script type="text/babel">
-    console.log("Timeline App Starting...");
     const { useState, useEffect, useMemo, useRef } = React;
-
-    class ErrorBoundary extends React.Component {
-        constructor(props) {
-            super(props);
-            this.state = { error: null };
-        }
-        componentDidCatch(error, errorInfo) {
-            this.setState({ error });
-            console.error("Timeline Error:", error, errorInfo);
-        }
-        render() {
-            if (this.state.error) {
-                return <div className="p-10 text-red-600 text-center"><h1>页面出现错误</h1><button onClick={()=>window.location.reload()} className="mt-4 px-4 py-2 border rounded">刷新重试</button></div>;
-            }
-            return this.props.children;
-        }
-    }
 
     // 默认内置数据，确保双击打开即有内容
     const DEFAULT_DATA = `# 项目时间表（可编辑）
@@ -157,40 +88,20 @@
       return out.trim();
     }
 
-    // 解析编号（支持 3-4 段结构）：[客户]-[项目]-S[阶段]-[S/P][序号]
-    // 返回：{ step, product, type, prefix }
+    /**
+     * 解析卡片编号，提取阶段、产品类型和项目前缀
+     * 新格式: {客户号}-{项目号}-S{阶段}-{产品类型}{序号} (例如: 1205-NI-S1-P01)
+     * @param {string} cardId 卡片ID
+     * @returns {object} 解析结果
+     */
     function parseCardId(cardId='') {
-      const v = (cardId || '').trim().replace(/[—–－]/g, '-').toUpperCase();
-      const segs = v.split('-').filter(Boolean);
-      
-      let step = 1; // Default to S1 if not found
-      let product, type, prefix;
-      
-      // Attempt to find stage pattern S\d+ in segments
-      // Typical patterns:
-      // 1205-S1-P01 (Old) -> Segs: 1205, S1, P01. Step=1
-      // 1205-NI-S1-P01 (New) -> Segs: 1205, NI, S1, P01. Step=1
-      // 1205-NI-S2-S01 -> Segs: 1205, NI, S2, S01. Step=2
-      
-      let stageIdx = -1;
-      
-      for (let i = 0; i < segs.length; i++) {
-          if (/^S\d+$/.test(segs[i]) && !/^S0\d+$/.test(segs[i])) { // Exclude S01 (Service)
-              step = Number(segs[i].substring(1));
-              stageIdx = i;
-              break;
-          }
-      }
-      
-      // Prefix is everything before stage (or first 2 parts if no stage found)
-      if (stageIdx > 0) {
-          prefix = segs.slice(0, stageIdx).join('-');
-      } else {
-          // Fallback
-          prefix = segs.slice(0, 2).join('-');
-      }
-
-      return { step, product: '', type: '', prefix };
+      const m = cardId.match(/^([^-]+)-([^-]+)-S(\d+)-([SP]\d+)/i);
+      return {
+        step: m ? Number(m[3]) : undefined,
+        product: m ? m[4] : undefined,
+        type: m ? m[4][0].toUpperCase() : undefined, // 'S' or 'P'
+        prefix: m ? `${m[1]}-${m[2]}` : undefined // 返回 {客户号}-{项目号} 作为前缀
+      };
     }
 
     // 时间轴窗口：2025年12月 - 2026年12月 (13个月)
@@ -234,12 +145,12 @@
       };
 
       // Helper to guess phase type from text context
-          const guessType = (str) => {
-              if (/设计|规划|准备|方案|访谈|梳理|前期|调研|采购|招标/.test(str)) return 'prep';
-              if (/实施|执行|演练|部署|开发|建设|上线|运营|推广|加固|整改|联调|测试/.test(str)) return 'execution';
-              if (/验收|复盘|总结|汇报|收尾|提交|归档|交付|结算|审计/.test(str)) return 'closing';
-              return 'execution'; // Default
-          };
+      const guessType = (str) => {
+          if (/设计|规划|准备|方案|访谈|梳理|前期|调研|采购|招标/.test(str)) return 'prep';
+          if (/实施|执行|演练|部署|开发|建设|上线|运营|推广|加固|整改|联调|测试/.test(str)) return 'execution';
+          if (/验收|复盘|总结|汇报|收尾|提交|归档|交付|结算|审计/.test(str)) return 'closing';
+          return 'execution'; // Default
+      };
 
       // Strategy: Split by delimiters (newline, semicolon) and parse each segment
       // e.g. "1月方案; 3月实施" -> ["1月方案", "3月实施"]
@@ -271,19 +182,11 @@
               }
           }
 
-          // Pattern C: 10月 (Single month, no year)
+          // Pattern C: 10月 (Single month)
           if (!range) {
               m = seg.match(/(?<!\d年)(?<!\d)(?<![-~到])(\d{1,2})月(?![-~到\d])/);
               if (m) {
                   range = { start: { y: defaultYear, m: Number(m[1]) }, end: { y: defaultYear, m: Number(m[1]) } };
-              }
-          }
-
-          // Pattern D1: 2026年4月 (Single month with year)
-          if (!range) {
-              m = seg.match(/(\d{2,4})年\s*(\d{1,2})月(?!\s*[-~到])/);
-              if (m) {
-                  range = { start: { y: normalizeYear(m[1]), m: Number(m[2]) }, end: { y: normalizeYear(m[1]), m: Number(m[2]) } };
               }
           }
 
@@ -301,15 +204,6 @@
              const endMonth = ((originMonth-1 + (windowMonths-1)) % 12) + 1;
              const endYear = originYear + Math.floor((originMonth-1 + (windowMonths-1))/12);
              range = { start: { y: originYear, m: originMonth }, end: { y: endYear, m: endMonth } };
-          }
-
-          // Special Case: "2026年全年"
-          if (!range) {
-              m = seg.match(/(\d{2,4})年\s*全年/);
-              if (m) {
-                  const y = normalizeYear(m[1]);
-                  range = { start: { y, m: 1 }, end: { y, m: 12 } };
-              }
           }
 
           return { range, type, raw: seg };
@@ -404,15 +298,9 @@
     };
 
     const App = () => {
-      // 从 URL 获取初始前缀
-      const getInitialPrefix = () => {
-        const params = new URLSearchParams(window.location.search);
-        return params.get('projectPrefix') || params.get('prefix') || '';
-      };
-
       // 从 LocalStorage 读取数据，而不是使用 hardcoded data
       const [cards, setCards] = useState([]);
-      const [prefix, setPrefix] = useState(getInitialPrefix());
+      const [prefix, setPrefix] = useState('');
       const wrapRef = useRef(null);
       
       // Edit State
@@ -573,13 +461,7 @@
                 {allPrefixes.map(p=> (<option key={p} value={p}>{p}</option>))}
               </select>
               <button className="px-3 py-2 border rounded bg-white hover:bg-gray-50 shadow-sm text-blue-600 font-bold" onClick={forceReload}>↻ 刷新数据</button>
-              <button className="px-3 py-2 border rounded bg-white hover:bg-gray-50 shadow-sm" onClick={() => {
-                  if (document.referrer && document.referrer.includes('project_detail.html')) {
-                      window.history.back();
-                  } else {
-                      window.location.href = 'projects.html';
-                  }
-              }}>返回列表</button>
+              <button className="px-3 py-2 border rounded bg-white hover:bg-gray-50 shadow-sm" onClick={()=> window.location.href='projects.html'}>返回列表</button>
               <button className="px-3 py-2 border rounded bg-white hover:bg-gray-50 shadow-sm" onClick={()=> exportMarkdown(cards)}>导出 MD</button>
               <button className="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 shadow-sm" onClick={()=> exportPNG(wrapRef.current)}>导出图片</button>
             </div>
@@ -698,14 +580,18 @@
                                         <div className="px-6 py-2 flex flex-col justify-center border-r border-slate-200 bg-white/50 backdrop-blur-sm group cursor-pointer hover:bg-blue-50 transition-colors z-20 relative"
                                              onClick={() => {
                                                  if (c.isAgg) return;
-                                                 // Open Edit Modal on Click (instead of card detail)
-                                                 setEditingCard({ id: c.id || c.cardId, cardId: c.cardId, rawTime: periodText });
+                                                 const rawTime = (c.data && c.data['项目周期']) || extractField(c.rawText, '项目周期');
+                                                 setEditingCard({ id: c.id || c.cardId, rawTime, cardId: c.cardId });
                                              }}
-                                             title={c.isAgg ? "聚合任务" : "点击编辑时间"}
+                                             title={c.isAgg ? "聚合任务时间由子任务推算" : "点击编辑时间"}
                                         >
-                                            <div className={`font-bold text-sm leading-tight mb-1 flex items-center justify-between ${c.isAgg ? 'text-purple-600' : 'text-slate-700 group-hover:text-blue-600'}`}>
+                                            <div className={`font-bold text-sm leading-tight mb-1 flex items-center justify-between ${c.isAgg ? 'text-purple-600' : 'text-slate-700'}`}>
                                                 <span>{name}</span>
-                                                {!c.isAgg && <i className="text-gray-300 w-3 h-3 group-hover:text-blue-400" data-lucide="edit-2">✎</i>}
+                                                {!c.isAgg && (
+                                                    <span className="text-blue-500 bg-blue-100 hover:bg-blue-200 px-1.5 py-0.5 rounded text-[10px] opacity-60 group-hover:opacity-100 transition-opacity">
+                                                        ✎ 编辑
+                                                    </span>
+                                                )}
                                             </div>
                                             <div className="text-[10px] text-slate-400 font-mono">{c.cardId}</div>
                                         </div>
@@ -761,11 +647,4 @@
     };
 
     const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(
-      <ErrorBoundary>
-        <App />
-      </ErrorBoundary>
-    );
-  </script>
-</body>
-</html>
+    root.render(<App />);

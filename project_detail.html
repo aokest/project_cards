@@ -15,15 +15,25 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
                 <div class="flex items-center gap-4">
-                    <a href="projects.html" class="text-gray-500 hover:text-gray-900 flex items-center gap-1">
-                        <i data-lucide="arrow-left" class="w-5 h-5"></i> 返回看板
+                    <a href="projects.html" class="text-gray-500 hover:text-gray-900 flex items-center gap-1" title="返回项目看板">
+                        <i data-lucide="layout-dashboard" class="w-5 h-5"></i> 看板
                     </a>
                     <div class="h-6 w-px bg-gray-200"></div>
                     <div class="font-bold text-xl text-gray-900" id="nav-title">加载中...</div>
                 </div>
                 <div class="flex items-center gap-3">
-                    <button onclick="saveProject()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 flex items-center gap-2 shadow-sm">
-                        <i data-lucide="save" class="w-4 h-4"></i> 保存变更
+                    <button onclick="deleteCurrentProject()" class="flex items-center gap-2 px-4 py-2 bg-white border border-red-200 text-red-600 rounded-lg hover:bg-red-50 transition-colors text-sm font-medium">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        删除项目
+                    </button>
+                    <div class="w-px h-6 bg-gray-200 mx-1"></div>
+                    <button onclick="exportProjectData('json')" class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium">
+                        <i data-lucide="download" class="w-4 h-4 text-gray-500"></i>
+                        JSON 备份
+                    </button>
+                    <button onclick="saveProject()" class="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium shadow-sm">
+                        <i data-lucide="save" class="w-4 h-4"></i>
+                        保存变更
                     </button>
                 </div>
             </div>
@@ -47,16 +57,20 @@
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs font-bold text-gray-500 uppercase">客户代号</label>
-                            <input type="text" id="p-cust" class="mt-1 w-full p-2 border rounded text-sm font-mono uppercase bg-gray-50" readonly>
+                            <input type="text" id="p-cust" class="mt-1 w-full p-2 border rounded text-sm font-mono uppercase bg-white focus:ring-2 focus:ring-blue-100 outline-none">
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-gray-500 uppercase">项目代号</label>
-                            <input type="text" id="p-proj" class="mt-1 w-full p-2 border rounded text-sm font-mono uppercase bg-gray-50" readonly>
+                            <input type="text" id="p-proj" class="mt-1 w-full p-2 border rounded text-sm font-mono uppercase bg-white focus:ring-2 focus:ring-blue-100 outline-none">
                         </div>
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-500 uppercase">合同编号</label>
                         <input type="text" id="p-contract" class="mt-1 w-full p-2 border rounded text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-100 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase">项目简介</label>
+                        <textarea id="p-desc" rows="3" class="mt-1 w-full p-2 border rounded text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-100 outline-none resize-none"></textarea>
                     </div>
                 </div>
             </div>
@@ -136,19 +150,159 @@
 
         <!-- Right: Linked Cards -->
         <div class="flex-1 flex flex-col gap-6">
-            <div class="flex justify-between items-center">
-                <h2 class="text-2xl font-black text-gray-900">关联项目卡片</h2>
-                <button onclick="createNewCard()" class="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 flex items-center gap-2 shadow-sm">
-                    <i data-lucide="plus-circle" class="w-4 h-4"></i> 新增卡片
-                </button>
+            <!-- Summary Stats -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+                    <h3 class="font-bold text-gray-800 flex items-center gap-2">
+                        <i data-lucide="calculator" class="w-4 h-4 text-blue-500"></i>
+                        预算与工时概览
+                    </h3>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-3 gap-6">
+                        <div class="bg-blue-50 rounded-lg p-4 border border-blue-100">
+                            <div class="text-xs text-blue-600 mb-1 font-medium">子卡片总预算</div>
+                            <div class="text-2xl font-bold text-blue-900" id="stat-total-budget">¥0</div>
+                            <div class="text-[10px] text-blue-400 mt-1">基于关联卡片“预算投入”自动汇总</div>
+                        </div>
+                        <div class="bg-indigo-50 rounded-lg p-4 border border-indigo-100">
+                            <div class="text-xs text-indigo-600 mb-1 font-medium">预估总工时</div>
+                            <div class="text-2xl font-bold text-indigo-900" id="stat-total-days">0 人天</div>
+                            <div class="text-[10px] text-indigo-400 mt-1">自动识别“人天”或“d”关键字</div>
+                        </div>
+                        <div class="bg-emerald-50 rounded-lg p-4 border border-emerald-100">
+                            <div class="text-xs text-emerald-600 mb-1 font-medium">关联卡片数</div>
+                            <div class="text-2xl font-bold text-emerald-900" id="stat-card-count">0 个</div>
+                            <div class="text-[10px] text-emerald-400 mt-1">当前项目关联的子项总数</div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <!-- Card Grid -->
-            <div id="cards-container" class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <div class="flex justify-between items-center">
+                <h2 class="text-2xl font-black text-gray-900">关联项目卡片</h2>
+                <div class="flex items-center gap-4">
+                    <!-- View Mode Switcher -->
+                    <div class="flex bg-gray-100 p-1 rounded-lg border border-gray-200">
+                        <button id="view-grid" onclick="setViewMode('grid')" class="p-1.5 rounded-md transition-all bg-white shadow-sm text-blue-600" title="网格视图">
+                            <i data-lucide="layout-grid" class="w-4 h-4"></i>
+                        </button>
+                        <button id="view-list" onclick="setViewMode('list')" class="p-1.5 rounded-md transition-all text-gray-500 hover:text-gray-700" title="列表视图">
+                            <i data-lucide="list" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <button onclick="viewTimeline()" class="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-100 flex items-center gap-2 shadow-sm">
+                            <i data-lucide="calendar" class="w-4 h-4"></i> 查看推进表
+                        </button>
+                        <button onclick="createNewCard()" class="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 flex items-center gap-2 shadow-sm">
+                            <i data-lucide="plus-circle" class="w-4 h-4"></i> 新增卡片
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Batch Action Toolbar (New) -->
+            <div id="batch-toolbar" class="bg-white border border-gray-200 rounded-xl p-3 flex flex-wrap items-center justify-between gap-4 shadow-sm">
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-lg border border-gray-100">
+                        <input type="checkbox" id="select-all-checkbox" onchange="toggleSelectAll(this.checked)" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                        <label for="select-all-checkbox" class="text-sm font-medium text-gray-600 cursor-pointer">全选</label>
+                    </div>
+                    <span id="selection-count" class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded hidden">已选择 0 项</span>
+                </div>
+                
+                <div class="flex items-center gap-2">
+                    <button onclick="document.getElementById('import-card-md').click()" class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                        <i data-lucide="file-up" class="w-3.5 h-3.5 text-blue-500"></i> 导入 MD
+                        <input type="file" id="import-card-md" class="hidden" accept=".md" multiple onchange="importProjectCardsMD(this.files)">
+                    </button>
+                    
+                    <div class="h-4 w-px bg-gray-200 mx-1"></div>
+                    
+                    <button onclick="exportSelectedCards('md')" class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                        <i data-lucide="file-output" class="w-3.5 h-3.5 text-orange-500"></i> 导出 MD
+                    </button>
+                    
+                    <button onclick="exportSelectedCards('excel')" class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                        <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5 text-green-600"></i> 导出 Excel
+                    </button>
+                    
+                    <button onclick="showSelectedBudget()" class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-lg hover:bg-indigo-100 transition-colors">
+                        <i data-lucide="pie-chart" class="w-3.5 h-3.5"></i> 预算统计
+                    </button>
+                    
+                    <div class="h-4 w-px bg-gray-200 mx-1"></div>
+                    
+                    <button onclick="deleteSelectedCards()" class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-red-700 bg-red-50 border border-red-100 rounded-lg hover:bg-red-100 transition-colors">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> 删除
+                    </button>
+                </div>
+            </div>
+
+            <!-- Card Container (Supports Grid & List) -->
+            <div id="cards-container">
                 <!-- Cards Rendered Here -->
             </div>
         </div>
     </main>
+
+    <!-- Budget Modal (New) -->
+    <div id="budget-modal" class="fixed inset-0 bg-black/50 z-[100] hidden items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+            <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                <h3 class="font-bold text-gray-900 flex items-center gap-2">
+                    <i data-lucide="pie-chart" class="w-5 h-5 text-indigo-500"></i>
+                    选中卡片预算统计
+                </h3>
+                <button onclick="closeBudgetModal()" class="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <div class="flex-1 overflow-auto p-6 custom-scroll">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div class="bg-indigo-50 border border-indigo-100 p-4 rounded-xl">
+                        <div class="text-xs text-indigo-600 font-medium mb-1">选中卡片总金额</div>
+                        <div id="modal-total-money" class="text-3xl font-black text-indigo-900">¥0</div>
+                        <div class="text-[10px] text-indigo-400 mt-1">基于“预算投入”中包含“万”的数值</div>
+                    </div>
+                    <div class="bg-emerald-50 border border-emerald-100 p-4 rounded-xl">
+                        <div class="text-xs text-emerald-600 font-medium mb-1">选中卡片总工时</div>
+                        <div id="modal-total-days" class="text-3xl font-black text-emerald-900">0 人天</div>
+                        <div class="text-[10px] text-emerald-400 mt-1">基于“预算投入”中包含“人天/d”的数值</div>
+                    </div>
+                </div>
+
+                <div class="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">卡片名称/ID</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">预算投入详情</th>
+                                <th class="px-4 py-3 text-right text-xs font-bold text-gray-500 uppercase">金额(万)</th>
+                                <th class="px-4 py-3 text-right text-xs font-bold text-gray-500 uppercase">工时(人天)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="budget-table-body" class="divide-y divide-gray-200 text-sm">
+                            <!-- Rows rendered here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="p-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
+                <button onclick="exportSelectedCards('excel')" class="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium shadow-sm">
+                    <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+                    导出 Excel
+                </button>
+                <button onclick="closeBudgetModal()" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium">
+                    关闭
+                </button>
+            </div>
+        </div>
+    </div>
 
     <script>
         // Global State
@@ -156,6 +310,8 @@
         let allProjects = [];
         let allCards = [];
         let catalog = []; // Standard Catalog
+        let viewMode = 'grid'; // 'grid' | 'list'
+        let selectedIds = new Set();
         const projectId = new URLSearchParams(window.location.search).get('id');
 
         // Init
@@ -181,6 +337,31 @@
             } catch (e) {
                 alert(e.message);
             }
+        }
+
+        /**
+         * 切换视图模式
+         * @param {'grid'|'list'} mode 
+         */
+        function setViewMode(mode) {
+            viewMode = mode;
+            // Update UI buttons
+            const gridBtn = document.getElementById('view-grid');
+            const listBtn = document.getElementById('view-list');
+            
+            if (mode === 'grid') {
+                gridBtn.classList.add('bg-white', 'shadow-sm', 'text-blue-600');
+                gridBtn.classList.remove('text-gray-500');
+                listBtn.classList.remove('bg-white', 'shadow-sm', 'text-blue-600');
+                listBtn.classList.add('text-gray-500');
+            } else {
+                listBtn.classList.add('bg-white', 'shadow-sm', 'text-blue-600');
+                listBtn.classList.remove('text-gray-500');
+                gridBtn.classList.remove('bg-white', 'shadow-sm', 'text-blue-600');
+                gridBtn.classList.add('text-gray-500');
+            }
+            
+            renderCards();
         }
 
         // --- Tag Input Logic ---
@@ -220,30 +401,41 @@
         }
 
         function removeTag(role, tag) {
+            if (!currentProject.team) return;
             let current = currentProject.team[role];
             if (Array.isArray(current)) {
                 currentProject.team[role] = current.filter(t => t !== tag);
                 renderTags(role);
+            } else if (current === tag) {
+                 currentProject.team[role] = [];
+                 renderTags(role);
             }
         }
 
-        // Helper: Get Linked Cards (Shared Logic)
+        // Helper: Get Linked Cards (Unified Logic)
         function getLinkedCards() {
             if (!currentProject || !allCards) return [];
             
-            const custPrefix = currentProject.meta.customerNo + '-';
-            const fullPrefix = `${currentProject.meta.customerNo}-${currentProject.meta.projectNo}-`;
+            const custPrefix = (currentProject.meta.customerNo || '').toUpperCase() + '-';
+            const fullPrefix = `${(currentProject.meta.customerNo || '').toUpperCase()}-${(currentProject.meta.projectNo || '').toUpperCase()}-`;
             
             return allCards.filter(c => {
                 const cid = (c.cardId || '').toUpperCase();
-                // 1. Strict Match
+                // Match 1: Standard Full ID (e.g., 1205-NI-S1-01)
                 if (cid.startsWith(fullPrefix)) return true;
-                // 2. Loose Match (Default Project)
-                if (cid.startsWith(custPrefix) && cid.match(new RegExp(`^${custPrefix}S\\d+`))) {
+                
+                // Match 2: Legacy/Loose ID (e.g., 1205-S1-01) - Matches CustomerNo + S...
+                // Regex: Starts with CUST-, followed by S and digits
+                if (cid.startsWith(custPrefix) && cid.match(new RegExp(`^${escapeRegExp(custPrefix)}S\\d+`))) {
                     return true;
                 }
+                
                 return false;
             });
+        }
+
+        function escapeRegExp(string) {
+            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         }
 
         // Render Meta
@@ -256,6 +448,7 @@
             document.getElementById('p-cust').value = currentProject.meta.customerNo;
             document.getElementById('p-proj').value = currentProject.meta.projectNo;
             document.getElementById('p-contract').value = currentProject.meta.contractNo || '';
+            document.getElementById('p-desc').value = currentProject.meta.description || '';
             
             // Team (Tags)
             renderTags('sales');
@@ -263,38 +456,40 @@
             renderTags('product');
             
             // Finance
+            const linkedCards = getLinkedCards();
+            
+            // Stats Calculation
+            let totalIncome = 0;
+            let totalDays = 0;
+
+            linkedCards.forEach(c => {
+                const budgetStr = (c.data && c.data['预算投入']) || '';
+                if (!budgetStr) return;
+                
+                // Income: Find "万" or "w"
+                const wanMatches = [...budgetStr.matchAll(/(\d+(\.\d+)?)\s*[万wW]/g)];
+                if (wanMatches.length > 0) {
+                    wanMatches.forEach(m => totalIncome += parseFloat(m[1]) * 10000);
+                } else if (/^\d+(\.\d+)?$/.test(budgetStr.trim())) {
+                    totalIncome += parseFloat(budgetStr.trim());
+                }
+
+                // Days: Find "人天", "人天/月", "d"
+                const dayMatches = [...budgetStr.matchAll(/(\d+(\.\d+)?)\s*(人天|d|D)/g)];
+                if (dayMatches.length > 0) {
+                    dayMatches.forEach(m => totalDays += parseFloat(m[1]));
+                }
+            });
+
+            // Update Summary Stats UI
+            document.getElementById('stat-total-budget').innerText = `¥${(totalIncome/10000).toFixed(1)} 万`;
+            document.getElementById('stat-total-days').innerText = `${totalDays.toFixed(1)} 人天`;
+            document.getElementById('stat-card-count').innerText = `${linkedCards.length} 个`;
+
             const isAuto = currentProject.finance?.budgetMode === 'auto_sum';
             document.getElementById('budget-auto-calc').checked = isAuto;
             
             if (isAuto) {
-                // Calculate from cards
-                const linkedCards = getLinkedCards();
-                
-                // Heuristic: Extract budget from card data '预算投入' field
-                let totalIncome = 0;
-                
-                linkedCards.forEach(c => {
-                    const budgetStr = (c.data && c.data['预算投入']) || '';
-                    if (!budgetStr) return;
-                    
-                    // Try match: "50万元", "50万", "500000", "50.5万"
-                    // Strategy: Find all numbers that are followed by "万" or "w"
-                    const wanMatches = [...budgetStr.matchAll(/(\d+(\.\d+)?)\s*[万wW]/g)];
-                    if (wanMatches.length > 0) {
-                        wanMatches.forEach(m => totalIncome += parseFloat(m[1]) * 10000);
-                    } else {
-                        // Fallback: Check for "元" without "万"
-                        // Or just numbers if the field is purely numeric?
-                        // Let's match typical patterns like "总额 500000"
-                        // But usually people write "50万". 
-                        // If no "万" found, look for large numbers > 1000?
-                        // Let's keep it safe: Only count explicitly marked "万" or pure number if field is short.
-                        if (/^\d+(\.\d+)?$/.test(budgetStr.trim())) {
-                            totalIncome += parseFloat(budgetStr.trim());
-                        }
-                    }
-                });
-                
                 document.getElementById('f-income').value = totalIncome;
                 document.getElementById('f-cost').value = 0; 
                 document.getElementById('f-income').disabled = true;
@@ -373,35 +568,19 @@
         // Render Cards
         function renderCards() {
             const container = document.getElementById('cards-container');
-            // Logic: 
-            // Project Prefix: 1205-NI
-            // Card ID: 1205-S1-S01
-            // Common part: 1205
-            
-            // If projectNo is 'NI' (Non-Integrated / General), we might only match CustomerNo
-            // Or if Card ID follows 1205-S... format, it doesn't contain Project Code 'NI'.
-            
-            // Revised Matching Logic:
-            // 1. Strict Match: Card ID starts with `CustomerNo-ProjectNo-`
-            // 2. Loose Match: Card ID starts with `CustomerNo-S` (implies direct stage under customer, usually default project)
-            
-            const custPrefix = currentProject.meta.customerNo + '-';
-            const fullPrefix = `${currentProject.meta.customerNo}-${currentProject.meta.projectNo}-`;
-            
-            const linked = allCards.filter(c => {
-                const cid = (c.cardId || '').toUpperCase();
-                // Match 1205-NI-S1...
-                if (cid.startsWith(fullPrefix)) return true;
-                // Match 1205-S1... (If projectNo is generic or implicit)
-                // We assume if card has no project code segment, it belongs to the "Primary" project of that customer
-                // Heuristic: Check if cid looks like CUST-S\d
-                if (cid.startsWith(custPrefix) && cid.match(new RegExp(`^${custPrefix}S\\d+`))) {
-                    // Only claim these loose cards if this project is considered the "Main" one?
-                    // For now, let's include them to ensure visibility.
-                    return true;
-                }
-                return false;
-            });
+            const linked = getLinkedCards(); // Use Unified Logic
+
+            // Filter out disabled cards if not in "Edit Mode" (Currently we show all, but add visual indicator)
+            // Or maybe sort them to bottom? For now, let's just render them all but style disabled ones.
+
+            // Update selection count
+            const countEl = document.getElementById('selection-count');
+            if (selectedIds.size > 0) {
+                countEl.innerText = `已选择 ${selectedIds.size} 项`;
+                countEl.classList.remove('hidden');
+            } else {
+                countEl.classList.add('hidden');
+            }
             
             if (linked.length === 0) {
                 container.innerHTML = `
@@ -415,68 +594,596 @@
                 return;
             }
 
-            container.innerHTML = linked.map(c => {
-                const name = (c.data && c.data['项目名称']) || '未命名项目';
-                const status = (c.data && c.data['项目周期']) ? '进行中' : '规划中';
-                return `
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow relative group">
-                    <div class="flex justify-between items-start mb-2">
-                        <span class="font-mono text-xs font-bold text-gray-400 bg-gray-100 px-2 py-1 rounded">${c.cardId}</span>
-                        <a href="cardv8.html?id=${encodeURIComponent(c.cardId)}" target="_blank" class="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50">
-                            <i data-lucide="external-link" class="w-4 h-4"></i>
-                        </a>
+            if (viewMode === 'grid') {
+                container.className = "grid grid-cols-1 xl:grid-cols-2 gap-6";
+                container.innerHTML = linked.map(c => {
+                    const name = (c.data && c.data['项目名称']) || '未命名项目';
+                    const period = (c.data && c.data['项目周期']) ? '进行中' : '规划中';
+                    const isSelected = selectedIds.has(c.id);
+                    const isActive = c.status !== 'disabled';
+                    
+                    return `
+                    <div class="bg-white rounded-xl shadow-sm border ${isSelected ? 'border-blue-500 ring-1 ring-blue-500' : 'border-gray-200'} p-5 hover:shadow-md transition-shadow relative group ${!isActive ? 'opacity-60 bg-gray-50' : ''}">
+                        <div class="absolute top-4 left-4 z-10">
+                            <input type="checkbox" ${isSelected ? 'checked' : ''} onchange="toggleCardSelection('${c.id}')" onclick="event.stopPropagation()" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer">
+                        </div>
+                        
+                        <!-- Status Toggle (Top Right) -->
+                        <div class="absolute top-4 right-4 z-10 flex gap-2">
+                             <button onclick="event.stopPropagation(); toggleCardStatus('${c.id}', '${isActive ? 'disabled' : 'active'}')" class="p-1 rounded hover:bg-gray-100 transition-colors" title="${isActive ? '禁用卡片' : '启用卡片'}">
+                                <i data-lucide="${isActive ? 'power' : 'power-off'}" class="w-4 h-4 ${isActive ? 'text-green-500' : 'text-gray-400'}"></i>
+                            </button>
+                            <a href="cardv8.html?id=${encodeURIComponent(c.cardId)}" target="_blank" class="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50" onclick="event.stopPropagation()">
+                                <i data-lucide="external-link" class="w-4 h-4"></i>
+                            </a>
+                        </div>
+
+                        <div class="flex justify-between items-start mb-2 pl-8 pr-16">
+                            <span class="font-mono text-xs font-bold text-gray-400 bg-gray-100 px-2 py-1 rounded select-all">${c.cardId}</span>
+                        </div>
+                        <div class="pl-8" onclick="toggleCardSelection('${c.id}')">
+                            <h4 class="font-bold text-gray-900 text-lg mb-2 line-clamp-1 cursor-pointer ${!isActive ? 'line-through text-gray-500' : ''}">${name}</h4>
+                            <div class="text-sm text-gray-500 line-clamp-3 mb-4 min-h-[3rem]">
+                                ${(c.data && c.data['项目目标']) || '暂无目标描述...'}
+                            </div>
+                            <div class="flex items-center gap-4 text-xs text-gray-400 border-t pt-3">
+                                <span class="flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3"></i> ${period}</span>
+                                <span class="flex items-center gap-1"><i data-lucide="calendar" class="w-3 h-3"></i> ${new Date(c.updatedAt || Date.now()).toLocaleDateString()}</span>
+                                ${!isActive ? '<span class="text-red-400 font-bold border border-red-200 px-1 rounded">已禁用</span>' : ''}
+                            </div>
+                        </div>
                     </div>
-                    <h4 class="font-bold text-gray-900 text-lg mb-2 line-clamp-1">${name}</h4>
-                    <div class="text-sm text-gray-500 line-clamp-3 mb-4 min-h-[3rem]">
-                        ${(c.data && c.data['项目目标']) || '暂无目标描述...'}
-                    </div>
-                    <div class="flex items-center gap-4 text-xs text-gray-400 border-t pt-3">
-                        <span class="flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3"></i> ${status}</span>
-                        <span class="flex items-center gap-1"><i data-lucide="calendar" class="w-3 h-3"></i> ${new Date(c.updatedAt || Date.now()).toLocaleDateString()}</span>
-                    </div>
-                </div>
+                    `;
+                }).join('');
+            } else {
+                container.className = "bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden";
+                container.innerHTML = `
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left w-10">
+                                    <!-- Table header selection is handled by the toolbar "Select All" -->
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">卡片名称/ID</th>
+                                <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">预算投入</th>
+                                <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">更新时间</th>
+                                <th class="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            ${linked.map(c => {
+                                const isSelected = selectedIds.has(c.id);
+                                return `
+                                <tr class="${isSelected ? 'bg-blue-50/50' : 'hover:bg-gray-50'} transition-colors cursor-pointer" onclick="toggleCardSelection('${c.id}')">
+                                    <td class="px-6 py-4" onclick="event.stopPropagation()">
+                                        <input type="checkbox" ${isSelected ? 'checked' : ''} onchange="toggleCardSelection('${c.id}')" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer">
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="text-sm font-bold text-gray-900">${(c.data && c.data['项目名称']) || '未命名项目'}</div>
+                                        <div class="text-[10px] font-mono text-gray-400">${c.cardId}</div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="text-xs text-gray-600 line-clamp-1">${(c.data && c.data['预算投入']) || '-'}</div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="text-xs text-gray-500">${new Date(c.updatedAt || Date.now()).toLocaleDateString()}</div>
+                                    </td>
+                                    <td class="px-6 py-4 text-right" onclick="event.stopPropagation()">
+                                        <a href="cardv8.html?id=${encodeURIComponent(c.cardId)}" target="_blank" class="text-blue-600 hover:text-blue-900 font-medium text-xs">
+                                            详情
+                                        </a>
+                                    </td>
+                                </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
                 `;
-            }).join('');
+            }
             lucide.createIcons();
         }
 
         // Actions
-        async function saveProject() {
-            // Sync UI to State
-            currentProject.meta.name = document.getElementById('p-name').value;
-            currentProject.meta.contractNo = document.getElementById('p-contract').value;
-            
-            // Team is already updated via handleTagInput
-            
-            currentProject.finance.budgetIncome = Number(document.getElementById('f-income').value);
-            currentProject.finance.budgetCost = Number(document.getElementById('f-cost').value);
+        function exportProjectData(format) {
+            const linkedCards = getLinkedCards();
+            const projectName = currentProject.meta.name;
+            const timestamp = new Date().toISOString().split('T')[0];
 
-            // Save to Backend
-            const idx = allProjects.findIndex(p => p.id === projectId);
-            if (idx >= 0) allProjects[idx] = currentProject;
+            if (format === 'json') {
+                const data = {
+                    project: currentProject,
+                    cards: linkedCards
+                };
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                downloadBlob(blob, `${projectName}_导出_${timestamp}.json`);
+            } else if (format === 'md') {
+                let md = `# 项目：${projectName}\n\n`;
+                md += `**客户编号**：${currentProject.meta.customerNo}\n`;
+                md += `**项目编号**：${currentProject.meta.projectNo}\n\n`;
+                md += `--- \n\n`;
+                
+                linkedCards.forEach(card => {
+                    md += `## ${card.data['项目名称'] || '未命名卡片'}\n`;
+                    md += `**卡片编号**：${card.cardId}\n\n`;
+                    Object.entries(card.data).forEach(([key, val]) => {
+                        if (key !== '项目名称' && key !== '项目编号') {
+                            md += `### ${key}\n${val}\n\n`;
+                        }
+                    });
+                    md += `\n---\n\n`;
+                });
+                
+                const blob = new Blob([md], { type: 'text/markdown' });
+                downloadBlob(blob, `${projectName}_导出_${timestamp}.md`);
+            } else if (format === 'excel') {
+                // Simple CSV as Excel fallback
+                let csv = '\uFEFF'; // BOM for UTF-8 Excel
+                csv += '卡片编号,项目名称,预算投入,更新时间\n';
+                linkedCards.forEach(card => {
+                    const budgetStr = (card.data['预算投入'] || '').replace(/,/g, ' ');
+                    const title = (card.data['项目名称'] || '').replace(/,/g, ' ');
+                    csv += `${card.cardId},${title},"${budgetStr}",${card.updatedAt}\n`;
+                });
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+                downloadBlob(blob, `${projectName}_统计_${timestamp}.csv`);
+            }
+        }
+
+        function downloadBlob(blob, filename) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        async function deleteCurrentProject() {
+            if (!confirm('确定要删除整个项目及其配置吗？（不会删除关联的项目卡片）')) return;
             
+            const newProjects = allProjects.filter(p => p.id !== projectId);
             try {
                 const res = await fetch('/api/projects', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(allProjects)
+                    body: JSON.stringify(newProjects)
                 });
                 if (res.ok) {
-                    alert('保存成功');
+                    window.location.href = 'projects.html';
                 } else {
                     throw new Error('Server Error');
                 }
             } catch (e) {
-                alert('保存失败: ' + e.message);
+                alert('删除失败: ' + e.message);
             }
         }
 
+        async function saveProject() {
+            const btn = event.currentTarget;
+            const originalContent = btn.innerHTML;
+            
+            try {
+                // Loading state
+                btn.disabled = true;
+                btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> 保存中...`;
+                lucide.createIcons();
+
+                // Sync UI to State
+                currentProject.meta.name = document.getElementById('p-name').value;
+                currentProject.meta.customerNo = document.getElementById('p-cust').value;
+                currentProject.meta.projectNo = document.getElementById('p-proj').value;
+                currentProject.meta.contractNo = document.getElementById('p-contract').value;
+                currentProject.meta.description = document.getElementById('p-desc').value;
+                
+                if (!currentProject.finance) currentProject.finance = {};
+                currentProject.finance.budgetIncome = Number(document.getElementById('f-income').value);
+                currentProject.finance.budgetCost = Number(document.getElementById('f-cost').value);
+
+                // Save to Backend
+                const idx = allProjects.findIndex(p => p.id === projectId);
+                
+                // Check if project meta changed (CustomerNo or ProjectNo)
+                const oldMeta = idx >= 0 ? allProjects[idx].meta : {};
+                const metaChanged = (oldMeta.customerNo !== currentProject.meta.customerNo) || 
+                                    (oldMeta.projectNo !== currentProject.meta.projectNo);
+
+                if (idx >= 0) {
+                    allProjects[idx] = currentProject;
+                } else {
+                    allProjects.push(currentProject);
+                }
+                
+                // Batch Update Cards if Meta Changed
+                let cardsUpdated = false;
+                if (metaChanged && confirm(`项目编号/客户编号已变更。\n是否批量更新所有关联卡片的编号前缀？\n(例如：旧编号-S1-01 -> ${currentProject.meta.customerNo}-${currentProject.meta.projectNo}-S1-01)`)) {
+                    const linked = getLinkedCards(); // This uses the unified logic, so it finds both old and new
+                    const newPrefix = `${currentProject.meta.customerNo}-${currentProject.meta.projectNo}-`;
+                    
+                    linked.forEach(c => {
+                        // Logic: Replace the first two segments with new prefix
+                        // Current ID format assumed: AAA-BBB-SXX-XXX
+                        // We want to keep SXX-XXX part.
+                        
+                        const parts = c.cardId.split('-');
+                        if (parts.length >= 3) {
+                            // Assume suffix starts from the part that matches S\d+
+                            const suffixIdx = parts.findIndex(p => p.match(/^S\d+$/i));
+                            if (suffixIdx > 0) {
+                                const suffix = parts.slice(suffixIdx).join('-');
+                                c.cardId = newPrefix + suffix;
+                                
+                                // Also update internal data field if exists
+                                if (c.data && c.data['项目编号']) {
+                                    c.data['项目编号'] = c.cardId;
+                                }
+                                cardsUpdated = true;
+                            }
+                        }
+                    });
+                }
+                
+                const requests = [
+                    fetch('/api/projects', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(allProjects)
+                    })
+                ];
+                
+                if (cardsUpdated) {
+                    requests.push(
+                        fetch('/api/cards', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(allCards)
+                        })
+                    );
+                }
+                
+                await Promise.all(requests);
+                
+                // Update Nav Title Immediately
+                document.getElementById('nav-title').innerText = currentProject.meta.name;
+                document.title = `${currentProject.meta.name} - 详情`;
+                
+                if (true) { // Assuming success if no error thrown
+                    // Success feedback
+                    btn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                    btn.classList.add('bg-green-600');
+                    btn.innerHTML = `<i data-lucide="check" class="w-4 h-4"></i> 保存成功`;
+                    lucide.createIcons();
+                    
+                    setTimeout(() => {
+                        btn.classList.remove('bg-green-600');
+                        btn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                        btn.innerHTML = originalContent;
+                        btn.disabled = false;
+                        lucide.createIcons();
+                    }, 2000);
+                } else {
+                    throw new Error('服务器响应错误');
+                }
+            } catch (e) {
+                console.error("Save Error:", e);
+                alert('保存失败: ' + e.message);
+                btn.innerHTML = originalContent;
+                btn.disabled = false;
+                lucide.createIcons();
+            }
+        }
+
+        // --- Batch Operations (New) ---
+
+        /**
+         * 切换单个卡片选中状态
+         */
+        function toggleCardSelection(id) {
+            if (selectedIds.has(id)) {
+                selectedIds.delete(id);
+            } else {
+                selectedIds.add(id);
+            }
+            renderCards();
+        }
+
+        /**
+         * 全选/取消全选
+         */
+        function toggleSelectAll(checked) {
+            const linked = getLinkedCards();
+            if (checked) {
+                linked.forEach(c => selectedIds.add(c.id));
+            } else {
+                selectedIds.clear();
+            }
+            renderCards();
+        }
+
+        /**
+         * 导入项目卡片 MD (Enhanced for Multi-Card)
+         */
+        async function importProjectCardsMD(files) {
+            if (!files || files.length === 0) return;
+            
+            const KEY_MAP = {
+                '项目名称': 'title',
+                '项目编号': 'cardId',
+                '项目目标': 'target',
+                '项目周期': 'period',
+                '关键里程碑': 'milestones',
+                '交付物': 'deliverables',
+                '预算投入': 'budget',
+                '所需支持': 'support'
+            };
+
+            let newCardsCount = 0;
+            
+            for (let file of files) {
+                try {
+                    const text = await file.text();
+                    
+                    // Split by "---" separator (common in Jekyll/Frontmatter/Markdown separators)
+                    // Also handle potential BOM or leading spaces
+                    const rawCards = text.split(/^---+\s*$/gm).map(s => s.trim()).filter(s => s.length > 0);
+                    
+                    for (let rawCardText of rawCards) {
+                        // Further split by headers if "---" didn't work well or if mixed
+                        // But usually "---" is the best separator for multi-doc.
+                        // If rawCards length is 1, maybe it uses "### Title" as separator?
+                        // Let's assume standard structure: Key: Value
+                        
+                        const data = {};
+                        let title = '';
+                        let cardId = '';
+                        
+                        // Heuristic: Extract Card ID and Title from the text block
+                        // Regex to find "Key: Value" or "**Key**: Value" or "### Key\nValue"
+                        
+                        // 1. Try to find "项目编号：XXX"
+                        const idMatch = rawCardText.match(/(?:项目编号|编号)[:：]\s*([^\n]+)/);
+                        if (idMatch) cardId = idMatch[1].trim();
+                        
+                        // 2. Try to find "项目名称：XXX"
+                        const titleMatch = rawCardText.match(/(?:项目名称|名称)[:：]\s*([^\n]+)/);
+                        if (titleMatch) title = titleMatch[1].trim();
+                        
+                        // 3. Parse Sections
+                        // Support "### Section" or "**Section**:" or "Section:"
+                        const sections = rawCardText.split(/(?:^|\n)(?:###\s+|(?:\*\*)?([^\n*]+)(?:\*\*)?[:：])/g);
+                        // This split is tricky. Let's use a simpler line-by-line or regex approach for known keys.
+                        
+                        Object.keys(KEY_MAP).forEach(key => {
+                            // Regex: 
+                            // 1. ### Key \n Content
+                            // 2. **Key**: Content
+                            // 3. Key: Content
+                            const pattern = new RegExp(`(?:###\\s*${key}|\\*\\*${key}\\*\\*[:：]|${key}[:：])\\s*([\\s\\S]*?)(?=(?:###|\\*\\*[^\\n]*\\*\\*[:：]|[^\\n]+[:：]|$))`, 'i');
+                            const match = rawCardText.match(pattern);
+                            if (match) {
+                                data[key] = match[1].trim();
+                            }
+                        });
+                        
+                        // Fallback title/id from data
+                        if (!title && data['项目名称']) title = data['项目名称'];
+                        if (!cardId && data['项目编号']) cardId = data['项目编号'];
+                        
+                        // If still no ID, skip this block (might be just preamble)
+                        if (!cardId) continue;
+                        
+                        const newCard = {
+                            id: Date.now() + Math.random().toString(36).substr(2, 9),
+                            cardId: cardId,
+                            title: title || '未命名卡片',
+                            data: data,
+                            rawText: rawCardText,
+                            status: 'active', // Default status
+                            updatedAt: new Date().toISOString()
+                        };
+                        
+                        // Check if exists
+                        const idx = allCards.findIndex(c => c.cardId === cardId);
+                        if (idx > -1) {
+                            // Merge/Update
+                            allCards[idx] = { ...allCards[idx], ...newCard, id: allCards[idx].id }; // Keep internal ID
+                        } else {
+                            allCards.push(newCard);
+                        }
+                        newCardsCount++;
+                    }
+                } catch (e) {
+                    console.error('Import Error:', e);
+                }
+            }
+
+            if (newCardsCount > 0) {
+                // Save back
+                await fetch('/api/cards', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(allCards)
+                });
+                alert(`成功导入/更新 ${newCardsCount} 张卡片`);
+                renderCards();
+                renderMeta(); // Update stats
+            } else {
+                alert('未识别到有效的卡片数据，请检查MD格式（需包含“项目编号”字段）');
+            }
+        }
+
+        /**
+         * 导出选中卡片
+         */
+        function exportSelectedCards(format) {
+            const selectedCards = allCards.filter(c => selectedIds.has(c.id));
+            if (selectedCards.length === 0) {
+                alert('请先选择要导出的卡片');
+                return;
+            }
+
+            const timestamp = new Date().toISOString().split('T')[0];
+            const projectName = currentProject.meta.name;
+
+            if (format === 'md') {
+                let md = `# 项目卡片导出 - ${projectName}\n\n`;
+                selectedCards.forEach(c => {
+                    md += `## ${c.title || '未命名项目'}\n`;
+                    md += `**编号**: ${c.cardId}\n\n`;
+                    if (c.rawText) {
+                        md += c.rawText + '\n\n';
+                    } else {
+                        Object.entries(c.data || {}).forEach(([k, v]) => {
+                            md += `### ${k}\n${v}\n\n`;
+                        });
+                    }
+                    md += `---\n\n`;
+                });
+                downloadBlob(new Blob([md], { type: 'text/markdown' }), `选中卡片_${projectName}_${timestamp}.md`);
+            } else if (format === 'excel') {
+                let csv = '\uFEFF'; 
+                csv += '卡片编号,项目名称,预算投入,金额(万),工时(人天),更新时间\n';
+                selectedCards.forEach(c => {
+                    const budgetStr = (c.data?.['预算投入'] || '').replace(/"/g, '""').replace(/\n/g, ' ');
+                    const title = (c.data?.['项目名称'] || c.title || '').replace(/"/g, '""');
+                    
+                    const stats = parseBudgetStats(c.data?.['预算投入'] || '');
+                    csv += `"${c.cardId}","${title}","${budgetStr}",${stats.money},${stats.days},"${c.updatedAt}"\n`;
+                });
+                downloadBlob(new Blob([csv], { type: 'text/csv;charset=utf-8' }), `选中卡片统计_${projectName}_${timestamp}.csv`);
+            }
+        }
+
+        /**
+         * 批量删除选中卡片
+         */
+        async function deleteSelectedCards() {
+            if (selectedIds.size === 0) {
+                alert('请先选择要删除的卡片');
+                return;
+            }
+            
+            if (!confirm(`确定要删除选中的 ${selectedIds.size} 张卡片吗？此操作不可恢复。`)) return;
+            
+            // Filter out deleted cards
+            allCards = allCards.filter(c => !selectedIds.has(c.id));
+            selectedIds.clear();
+            
+            try {
+                await fetch('/api/cards', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(allCards)
+                });
+                renderCards();
+                renderMeta();
+            } catch (e) {
+                alert('删除失败: ' + e.message);
+            }
+        }
+
+        /**
+         * 切换卡片状态 (Active/Disabled)
+         */
+        async function toggleCardStatus(id, newStatus) {
+            // Find card
+            const card = allCards.find(c => c.id === id);
+            if (!card) return;
+            
+            card.status = newStatus;
+            
+            // Optimistic Update
+            renderCards();
+            
+            try {
+                await fetch('/api/cards', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(allCards)
+                });
+            } catch (e) {
+                console.error("Failed to update status", e);
+                // Revert if needed, but for now just log
+            }
+        }
+
+        /**
+         * 解析预算字符串中的数值
+         */
+        function parseBudgetStats(str) {
+            let money = 0;
+            let days = 0;
+            
+            // Money (万)
+            const wanMatches = [...str.matchAll(/(\d+(\.\d+)?)\s*[万wW]/g)];
+            if (wanMatches.length > 0) {
+                wanMatches.forEach(m => money += parseFloat(m[1]));
+            } else if (/^\d+(\.\d+)?$/.test(str.trim())) {
+                money = parseFloat(str.trim());
+            }
+
+            // Days (人天/d)
+            const dayMatches = [...str.matchAll(/(\d+(\.\d+)?)\s*(人天|d|D)/g)];
+            if (dayMatches.length > 0) {
+                dayMatches.forEach(m => days += parseFloat(m[1]));
+            }
+            
+            return { money, days };
+        }
+
+        /**
+         * 显示选中卡片的预算统计弹窗
+         */
+        function showSelectedBudget() {
+            const selectedCards = allCards.filter(c => selectedIds.has(c.id));
+            if (selectedCards.length === 0) {
+                alert('请先选择卡片进行统计');
+                return;
+            }
+
+            let totalMoney = 0;
+            let totalDays = 0;
+            const tableBody = document.getElementById('budget-table-body');
+            
+            const rows = selectedCards.map(c => {
+                const budgetStr = c.data?.['预算投入'] || '';
+                const stats = parseBudgetStats(budgetStr);
+                totalMoney += stats.money;
+                totalDays += stats.days;
+                
+                return `
+                    <tr>
+                        <td class="px-4 py-3">
+                            <div class="font-bold text-gray-900">${c.data?.['项目名称'] || c.title}</div>
+                            <div class="text-[10px] font-mono text-gray-400">${c.cardId}</div>
+                        </td>
+                        <td class="px-4 py-3 text-xs text-gray-500 max-w-xs truncate" title="${budgetStr}">${budgetStr || '-'}</td>
+                        <td class="px-4 py-3 text-right font-mono text-indigo-600 font-bold">${stats.money > 0 ? stats.money : '-'}</td>
+                        <td class="px-4 py-3 text-right font-mono text-emerald-600 font-bold">${stats.days > 0 ? stats.days : '-'}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            tableBody.innerHTML = rows;
+            document.getElementById('modal-total-money').innerText = `¥${totalMoney.toFixed(1)} 万`;
+            document.getElementById('modal-total-days').innerText = `${totalDays.toFixed(1)} 人天`;
+            
+            document.getElementById('budget-modal').classList.remove('hidden');
+            document.getElementById('budget-modal').classList.add('flex');
+            lucide.createIcons();
+        }
+
+        function closeBudgetModal() {
+            document.getElementById('budget-modal').classList.add('hidden');
+            document.getElementById('budget-modal').classList.remove('flex');
+        }
+
+        function viewTimeline() {
+            window.location.href = `project_timeline.html?id=${projectId}`;
+        }
+
         function createNewCard() {
-            // Auto generate next ID suggestion: CUST-PROJ-S1-P01
-            const prefix = `${currentProject.meta.customerNo}-${currentProject.meta.projectNo}`;
-            // Find existing max stage
-            // Pass prefix and parentId to card editor
-            window.open(`cardv8.html?projectPrefix=${encodeURIComponent(prefix)}&parentId=${encodeURIComponent(currentProject.id)}`, '_blank');
+            const prefix = `${currentProject.meta.customerNo}-${currentProject.meta.projectNo}-S1-`;
+            window.location.href = `cardv8.html?id=${encodeURIComponent(prefix)}&project=${projectId}`;
         }
 
         init();

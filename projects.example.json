@@ -1,0 +1,19 @@
+[
+  {
+    "id": "PROJ-EXAMPLE-001",
+    "meta": {
+      "name": "示例项目",
+      "projectNo": "EXAMPLE-001",
+      "customer": "示例客户",
+      "customerNo": "CUST-001",
+      "description": "这是一个示例项目描述。",
+      "status": "active",
+      "manager": "张三",
+      "startDate": "2024-01-01"
+    },
+    "finance": {
+      "budgetIncome": 1000000
+    },
+    "milestones": []
+  }
+]

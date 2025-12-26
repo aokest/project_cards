@@ -5,7 +5,16 @@ import os
 import sys
 from urllib.parse import urlparse
 
+# Default port
 PORT = 18889
+
+# Allow port override from command line
+if len(sys.argv) > 1:
+    try:
+        PORT = int(sys.argv[1])
+    except ValueError:
+        print(f"Invalid port number: {sys.argv[1]}, using default {PORT}")
+
 DATA_FILE = 'project_cards.json'
 PROJECTS_FILE = 'projects.json'
 CATALOG_FILE = 'data/catalog.json'

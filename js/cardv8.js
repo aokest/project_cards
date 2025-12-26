@@ -1,86 +1,63 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>项目卡片生成器 v9.2 (Final Ultimate)</title>
-    <!-- 使用 cdnjs 替代本地文件，更稳定 -->
-    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.development.js"></script>
-    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.development.js"></script>
-    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- 核心修复：使用本地 Lucide 库，彻底解决 CDN 不稳定导致的白屏问题 -->
-    <script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
-    <script>
-        // 全局错误捕获 (Global Error Handler)
-        window.onerror = function(message, source, lineno, colno, error) {
-            console.error("Global Error Caught:", message, error);
-            const root = document.getElementById('root');
-            if (root) {
-                root.innerHTML = `
-                    <div style="padding: 2rem; color: #7f1d1d; background: #fef2f2; height: 100vh; font-family: sans-serif;">
-                        <h1 style="font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem;">🚨 页面发生致命错误</h1>
-                        <p style="margin-bottom: 0.5rem;"><strong>错误信息：</strong> ${message}</p>
-                        <p style="margin-bottom: 0.5rem;"><strong>位置：</strong> ${source}:${lineno}:${colno}</p>
-                        <pre style="background: rgba(0,0,0,0.05); padding: 1rem; border-radius: 0.5rem; overflow: auto;">${error && error.stack ? error.stack : 'No stack trace available'}</pre>
-                        <button onclick="window.location.reload()" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #dc2626; color: white; border: none; border-radius: 0.25rem; cursor: pointer;">刷新重试</button>
-                    </div>
-                `;
+
+        const ErrorBoundary = class extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = { hasError: false, error: null, errorInfo: null };
+            }
+
+            static getDerivedStateFromError(error) {
+                return { hasError: true };
+            }
+
+            componentDidCatch(error, errorInfo) {
+                this.setState({ error, errorInfo });
+                console.error("React Error Boundary Caught:", error, errorInfo);
+            }
+
+            render() {
+                if (this.state.hasError) {
+                    return (
+                        <div className="p-8 bg-red-50 text-red-900 h-screen flex flex-col items-center justify-center">
+                            <h1 className="text-3xl font-bold mb-4">组件渲染崩溃</h1>
+                            <p className="mb-4">我们捕捉到了一个意外错误。</p>
+                            <pre className="bg-white p-4 rounded shadow text-sm overflow-auto max-w-2xl">
+                                {this.state.error && this.state.error.toString()}
+                                <br />
+                                {this.state.errorInfo && this.state.errorInfo.componentStack}
+                            </pre>
+                            <button onClick={() => window.location.reload()} className="mt-6 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">刷新页面</button>
+                        </div>
+                    );
+                }
+                return this.props.children;
             }
         };
 
-        // 检查关键依赖 (Dependency Check)
-        window.addEventListener('DOMContentLoaded', () => {
-            const missing = [];
-            if (!window.React) missing.push('React');
-            if (!window.ReactDOM) missing.push('ReactDOM');
-            if (!window.lucide) missing.push('Lucide Icons');
-            
-            if (missing.length > 0) {
-                throw new Error(`关键依赖库未加载: ${missing.join(', ')}。请检查网络或本地 js 目录文件是否完整。`);
-            }
-        });
-    </script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap');
-        body { font-family: 'Noto Sans SC', sans-serif; margin: 0; padding: 0; background-color: #f3f4f6; }
-        
-        /* 交互核心样式 */
-        .section-hover-ring { transition: all 0.2s; border: 2px solid transparent; }
-        .section-hover-ring:hover { border-color: rgba(59, 130, 246, 0.3); }
-        .section-selected { border-color: #3b82f6 !important; background-color: rgba(59, 130, 246, 0.05); }
-        
-        /* 复选框交互区域 */
-        .checkbox-area { cursor: pointer; user-select: none; }
-        .text-content-area { cursor: text; user-select: text; }
-        
-        /* 滚动条 */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-    </style>
-</head>
-<body class="h-screen flex overflow-hidden">
-    <div id="root" class="w-full h-full"></div>
-
-    <script type="text/babel">
         const { useState, useEffect, useRef, useMemo } = React;
 
         // --- 1. 常量与配置 ---
         const STORAGE_KEY = 'project_cards_v9_final';
-        const EMPTY_TEMPLATE = [
-            '项目编号：',
-            '项目名称：',
-            '项目目标：',
-            '现状分析：',
-            '项目周期：',
-            '预算投入：',
-            '所需支持：',
-            '项目内容：',
-            '参与部门：',
-            '相关产品及解决方案：',
-            '输出物：'
-        ].join('\n');
+        const DEFAULT_TEXT = `项目编号：1205-S1-S03
+项目名称：模拟黑客入侵检查
+项目目标：通过模拟黑客攻击，先于黑客主动发现潜在的高风险漏洞与防御盲区，推动纳入紧急修复清单（“红灯计划”），实现风险的超前识别与闭环处置。
+现状分析：
+目前处于黑客事件后期，依然被二次攻击或其他黑客攻击的高概率覆盖。传统响应、修复、加固、自查的方式对于防御难以聚焦在最急迫的风险以及最重要的资产安全防护上。
+项目周期：1月-2月期间，3周
+预算投入：
+入侵模拟检查服务
+8000元/人天，约70人天
+所需支持：
+- [ ] 测试授权。
+- [ ] 约定测试的核心业务资产。
+- [ ] 安排反馈业务情况及修复。
+项目内容：
+模拟真实攻击者思维与技术手段，尝试突破边界、横向移动、获取核心数据或权限。
+记录攻击路径、利用漏洞及潜在危害，输出可操作的修复建议。
+参与部门：信息安全部，IT运维部
+相关产品及解决方案：入侵模拟检查服务、数字风洞健康管理平台
+输出物：
+《数字风洞健康体检报告》：包含攻击路径、风险详情、修复建议。
+“红灯计划”清单：高伤害等级风险列表及修复优先级建议。`;
 
         // 字段映射配置
         const FIELD_CONFIG = {
@@ -148,8 +125,8 @@
             globalStyles, 
             isSelected, 
             onSelect, 
-            onResize, 
-            onToggleCheck, 
+            onResize,
+            onToggleCheck,
             customClass = "" 
         }) => {
             const { icon, minHeight, isChecklist, isBudget } = FIELD_CONFIG[title] || { icon: 'circle', minHeight: 150 };
@@ -260,40 +237,32 @@
         };
 
         // --- 4. 主布局组件：ProjectCard (恢复左右结构 + 底部双栏) ---
-    const ProjectCard = ({ data, styles, sectionConfigs, selectedSection, actions, parentProjectName }) => {
-        return (
-            <div 
-                className="w-[1920px] h-[1080px] relative overflow-hidden flex flex-col p-8 box-border shadow-2xl transition-colors duration-500"
-                style={{ 
-                    backgroundColor: styles.cardBg,
-                    backgroundImage: `linear-gradient(135deg, ${styles.cardBg} 0%, ${styles.accentColor}20 100%)`
-                }}
-                onClick={(e) => { e.stopPropagation(); actions.selectSection(null); }}
-            >
-                {/* Subtle Texture Overlay */}
-                <div className="absolute inset-0 opacity-[0.4] pointer-events-none" style={{
-                    backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.08'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
-                }}></div>
+        const ProjectCard = ({ data, styles, sectionConfigs, selectedSection, actions }) => {
+            return (
+                <div 
+                    className="w-[1920px] h-[1080px] relative overflow-hidden flex flex-col p-8 box-border shadow-2xl transition-colors duration-500"
+                    style={{ 
+                        backgroundColor: styles.cardBg,
+                        backgroundImage: `linear-gradient(135deg, ${styles.cardBg} 0%, ${styles.accentColor}20 100%)`
+                    }}
+                    onClick={(e) => { e.stopPropagation(); actions.selectSection(null); }}
+                >
+                    {/* Subtle Texture Overlay */}
+                    <div className="absolute inset-0 opacity-[0.4] pointer-events-none" style={{
+                        backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.08'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+                    }}></div>
 
-                <div className="absolute top-0 right-0 w-[800px] h-[800px] rounded-full opacity-[0.03] blur-3xl pointer-events-none" style={{ backgroundColor: styles.themeColor }}></div>
-                <div className="absolute top-12 bottom-12 left-0 w-3 rounded-r-xl" style={{ backgroundColor: styles.themeColor }}></div>
-                
-                <header className="flex items-end gap-6 pb-6 border-b-2 mb-6 shrink-0" style={{ borderColor: `${styles.themeColor}20` }}>
-                    <div className="flex-1 truncate flex flex-col">
-                        <h1 className="text-5xl font-black tracking-tighter leading-none" style={{ color: styles.textColor }}>
+                    <div className="absolute top-0 right-0 w-[800px] h-[800px] rounded-full opacity-[0.03] blur-3xl pointer-events-none" style={{ backgroundColor: styles.themeColor }}></div>
+                    <div className="absolute top-12 bottom-12 left-0 w-3 rounded-r-xl" style={{ backgroundColor: styles.themeColor }}></div>
+                    
+                    <header className="flex items-end gap-6 pb-6 border-b-2 mb-6 shrink-0" style={{ borderColor: `${styles.themeColor}20` }}>
+                        <h1 className="text-5xl font-black tracking-tighter leading-none flex-1 truncate" style={{ color: styles.textColor }}>
                             {data['项目名称'] || '未命名项目'}
                         </h1>
-                        {parentProjectName && (
-                            <div className="text-sm font-bold bg-blue-100 text-blue-800 px-2 py-1 rounded inline-flex items-center gap-1 mt-2 w-fit opacity-80" style={{ fontFamily: 'Noto Sans SC' }}>
-                                <Icon name="corner-up-left" size={14} />
-                                所属项目: {parentProjectName}
-                            </div>
-                        )}
-                    </div>
-                    <div className="text-2xl font-mono font-bold border-2 px-5 py-2 rounded-lg opacity-80" style={{ borderColor: styles.textColor, color: styles.textColor }}>
-                        {data['项目编号'] || 'NO.0000'}
-                    </div>
-                </header>
+                        <div className="text-2xl font-mono font-bold border-2 px-5 py-2 rounded-lg opacity-80" style={{ borderColor: styles.textColor, color: styles.textColor }}>
+                            {data['项目编号'] || 'NO.0000'}
+                        </div>
+                    </header>
 
                     {/* 主布局：Grid 12 列 */}
                     <div className="flex-1 grid grid-cols-12 gap-5 min-h-0">
@@ -471,10 +440,9 @@
 
         // --- 6. 根应用 App ---
         const App = () => {
-            const [rawText, setRawText] = useState(EMPTY_TEMPLATE);
+            const [rawText, setRawText] = useState(DEFAULT_TEXT);
             const [parsedData, setParsedData] = useState({});
             const [selectedSection, setSelectedSection] = useState(null);
-            const [inputCardId, setInputCardId] = useState('');
             
             const [styles, setStyles] = useState({
                 themeColor: '#0f172a', accentColor: '#f1f5f9', textColor: '#334155', cardBg: '#ffffff', budgetColor: '#C5AA99'
@@ -492,13 +460,7 @@
             const [cardList, setCardList] = useState([]);
             // Track the original ID of the currently edited card to support renaming/overwriting
             const [activeCardId, setActiveCardId] = useState(null);
-            
-            // Parent Project Context
-            const [parentProjectName, setParentProjectName] = useState(null);
-            const [parentProjectId, setParentProjectId] = useState(null);
 
-            // 核心逻辑：解析原始文本并映射到卡片各个区块
-            // 支持 Markdown 标题（#，##，###）解析与自动字段映射
             useEffect(() => {
                 if (!rawText) return;
                 const lines = rawText.split('\n');
@@ -506,99 +468,21 @@
                 let currentKey = null;
                 const KEY_MAP = {
                     '项目名称': '项目名称', '项目目标': '项目目标', '现状分析': '现状分析', 
-                    '项目周期': '项目周期', '预算投入': '预算投入', '项目预算': '预算投入',
-                    '所需支持': '所需支持', '项目内容': '项目内容', '参与部门': '参与部门', 
-                    '相关产品及解决方案': '相关产品及解决方案', '输出物': '输出物', '项目编号': '项目编号'
+                    '项目周期': '项目周期', '预算投入': '预算投入', '所需支持': '所需支持',
+                    '项目内容': '项目内容', '参与部门': '参与部门', '相关产品及解决方案': '相关产品及解决方案',
+                    '输出物': '输出物', '项目编号': '项目编号'
                 };
-
                 lines.forEach(line => {
-                    const trimmedLine = line.trim();
-                    if (!trimmedLine) {
-                        if (currentKey) newData[currentKey] = (newData[currentKey] || '') + '\n';
-                        return;
-                    }
-                    
-                    // 1. 处理 Markdown 标题 (## 项目目标 或 ### 项目目标)
-                    const headerMatch = trimmedLine.match(/^#+\s*(.+)/);
-                    if (headerMatch) {
-                        const headerTitle = headerMatch[1].trim();
-                        if (KEY_MAP[headerTitle]) {
-                            currentKey = KEY_MAP[headerTitle];
-                            return;
-                        } else if (trimmedLine.startsWith('## ') || trimmedLine.startsWith('# ')) {
-                            newData['项目名称'] = headerTitle;
-                            currentKey = '项目名称';
-                            return;
-                        }
-                    }
-
-                    // 2. 处理 标准键值对 (项目编号：1205-NI-S1-S05)
-                    // 更加鲁棒的匹配：允许冒号前后有空格，或者直接以关键词开头
-                    const kvMatch = trimmedLine.match(/^([^\uff1a:]+)([\uff1a:]\s*)(.*)/);
-                    if (kvMatch) {
-                        const key = kvMatch[1].replace(/\*\*|__/g, '').trim(); 
-                        if (KEY_MAP[key]) {
-                            currentKey = KEY_MAP[key];
-                            newData[currentKey] = kvMatch[3].trim();
-                            return;
-                        }
-                    }
-
-                    // 2b. 兜底逻辑：如果一行开头就是关键词（如 "预算投入"），即使没匹配上冒号正则，也尝试切换 key
-                    for (const [k, v] of Object.entries(KEY_MAP)) {
-                        if (trimmedLine.replace(/\*\*|__/g, '').startsWith(k)) {
-                            currentKey = v;
-                            const rest = trimmedLine.replace(/\*\*|__/g, '').substring(k.length).replace(/^[\uff1a:\s]+/, '');
-                            if (rest) {
-                                newData[currentKey] = (newData[currentKey] || '') + rest;
-                            }
-                            return;
-                        }
-                    }
-
-                    // 3. 处理 延续内容
-                    if (currentKey) {
-                        newData[currentKey] = (newData[currentKey] ? newData[currentKey] + '\n' : '') + line;
+                    const match = line.match(/^([^\uff1a:]+)[\uff1a:](.*)/);
+                    if (match && KEY_MAP[match[1].trim()]) {
+                        currentKey = KEY_MAP[match[1].trim()];
+                        newData[currentKey] = match[2].trim();
+                    } else if (currentKey) {
+                        newData[currentKey] = (newData[currentKey] ? newData[currentKey] + '\n' : '') + line.trim();
                     }
                 });
                 setParsedData(newData);
             }, [rawText]);
-
-            // 同步输入框的项目编号显示
-            useEffect(() => {
-                const pn = parsedData['项目编号'] || '';
-                setInputCardId(pn);
-            }, [parsedData['项目编号']]);
-
-            // 函数：更新原始文本中的“项目编号：”行
-            // 说明：支持 3-4 段编号结构 [客户]-[项目]-S[阶段]-[S/P][序号]，连字符与大小写自动规范化
-            function updateProjectNumber(newId) {
-                const normalize = (s) => (s || '')
-                    .trim()
-                    .replace(/[—–－]/g, '-')
-                    .toUpperCase();
-                const id = normalize(newId);
-                // 允许：3 段（含 S阶段 与 [SP]序号）或 4 段（含项目段）
-                const segs = id.split('-').filter(Boolean);
-                const hasStage = segs.some(x => /^S\d+$/i.test(x));
-                const hasType = segs.some(x => /^[SP]\d+$/i.test(x));
-                const validLen = (segs.length === 3 && hasStage) || (segs.length === 4 && hasStage);
-                const lines = rawText.split('\n');
-                let hasLine = false;
-                const next = lines.map((l) => {
-                    if (/^\s*项目编号[\uff1a:]/.test(l)) {
-                        hasLine = true;
-                        return '项目编号：' + id;
-                    }
-                    return l;
-                });
-                if (!hasLine) {
-                    next.unshift('项目编号：' + id);
-                }
-                setRawText(next.join('\n'));
-                setInputCardId(id);
-                return !!(validLen && hasStage && (hasType || segs.length === 3));
-            }
 
             const actions = {
                 selectSection: (key) => setSelectedSection(key),
@@ -637,7 +521,7 @@
                             body: JSON.stringify({
                                 model: aiConfig.model,
                                 messages: [
-                                    { role: 'system', content: '你是一个资深项目管理专家。请润色以下项目卡片内容，使其更加专业、简洁、有条理。请保留原有的键名（如"项目目标："、"现状分析："等），只修改内容。请直接输出润色后的文本，不要包含其他解释。' },
+                                    { role: 'system', content: '你是一个资深项目管理专家。请润色以下项目卡片内容，使其更加专业、简洁、有条理。请保留原有的键名（如“项目目标：”、“现状分析：”等），只修改内容。请直接输出润色后的文本，不要包含其他解释。' },
                                     { role: 'user', content: rawText }
                                 ]
                             })
@@ -678,7 +562,7 @@
                         // 2. Determine target ID and Card Object
                         // Use activeCardId if available (editing existing), otherwise create new ID
                         let targetId = activeCardId;
-                        const projectNum = parsedData['项目编号'] || inputCardId;
+                        const projectNum = parsedData['项目编号'];
                         
                         // Fallback: if no activeCardId but projectNum exists in list, assume we are editing that one
                         if (!targetId && projectNum) {
@@ -742,38 +626,6 @@
 
             // Init Load
             useEffect(() => {
-                // 0. Check for projectPrefix param to auto-fill ID
-                const urlParams = new URLSearchParams(window.location.search);
-                const projectPrefix = urlParams.get('projectPrefix');
-                const parentId = urlParams.get('parentId');
-
-                if (projectPrefix) {
-                    // Auto-fill ID suggestion: Prefix-S1-P01
-                    const suggestion = `${projectPrefix}-S1-P01`;
-                    // Only set if we are creating new (no ID param)
-                    if (!urlParams.get('id')) {
-                         setParsedData(prev => ({ ...prev, '项目编号': suggestion }));
-                         setRawText(prev => {
-                            if (prev.includes('项目编号：')) return prev.replace(/项目编号：.*/, `项目编号：${suggestion}`);
-                            return `项目编号：${suggestion}\n` + prev;
-                         });
-                    }
-                }
-                
-                // Store parentId if provided
-                if (parentId) {
-                    console.log("Associated with Parent Project:", parentId);
-                    setParentProjectId(parentId);
-                    // Save to state to use in UI rendering, instead of DOM manipulation
-                    // We need a state for parentProjectName
-                    fetch('/api/projects').then(r=>r.json()).then(projs => {
-                        const p = projs.find(x => x.id === parentId);
-                        if(p) {
-                           setParentProjectName(p.meta.name);
-                        }
-                    });
-                }
-
                 // 1. Load Local Config (Styles, AI)
                 const saved = localStorage.getItem(STORAGE_KEY);
                 if (saved) {
@@ -807,19 +659,10 @@
                                 // Find latest or by ID
                                 const urlParams = new URLSearchParams(window.location.search);
                                 const id = urlParams.get('id');
-                                const projectPrefix = urlParams.get('projectPrefix');
-                                
-                                // If creating new card (prefix exists, id missing), DO NOT load historical data
-                                if (!id && projectPrefix) {
-                                    // Keep EMPTY_TEMPLATE
-                                    console.log("Creating new card, skipping historical data load");
-                                    return; 
-                                }
-
                                 const target = id ? list.find(c => c.cardId === id || c.id === id) : list[list.length - 1]; // Default to latest
                                 
                                 if (target) {
-                                    setRawText(target.rawText || EMPTY_TEMPLATE);
+                                    setRawText(target.rawText || DEFAULT_TEXT);
                                     if (target.styles) setStyles(target.styles);
                                     if (target.sectionConfigs) setSectionConfigs(target.sectionConfigs);
                                     setActiveCardId(target.id);
@@ -845,11 +688,10 @@
                 const id = e.target.value;
                 const target = cardList.find(c => c.id === id || c.cardId === id);
                 if (target) {
-                    setRawText(target.rawText || EMPTY_TEMPLATE);
+                    setRawText(target.rawText || DEFAULT_TEXT);
                     if (target.styles) setStyles(target.styles);
                     if (target.sectionConfigs) setSectionConfigs(target.sectionConfigs);
                     setActiveCardId(target.id);
-                    setInputCardId(target.cardId || '');
                     // Update URL without reload
                     const newUrl = new URL(window.location);
                     newUrl.searchParams.set('id', target.cardId || target.id);
@@ -888,36 +730,6 @@
                                         </option>
                                     ))}
                                 </select>
-                            </div>
-
-                            <div className="flex flex-col gap-2">
-                                <div className="flex justify-between items-center">
-                                    <label className="block text-xs font-bold text-gray-500 uppercase">项目编号</label>
-                                    <span className="text-xs text-gray-400">示例：1205-S1-S03</span>
-                                </div>
-                                <input 
-                                    className={`w-full p-2 border rounded-lg text-sm bg-gray-50 focus:bg-white outline-none ${(() => {
-                                        const v = (inputCardId||'').trim().replace(/[—–－]/g,'-').toUpperCase();
-                                        const segs = v.split('-').filter(Boolean);
-                                        const hasStage = segs.some(x => /^S\\d+$/i.test(x));
-                                        const hasType = segs.some(x => /^[SP]\\d+$/i.test(x));
-                                        const validLen = (segs.length===3 && hasStage) || (segs.length===4 && hasStage);
-                                        return (validLen && hasStage && (hasType || segs.length===3)) ? 'border-gray-300 focus:border-blue-500' : 'border-red-300 focus:border-red-500';
-                                    })()}`}
-                                    value={(inputCardId || '')} 
-                                    onChange={(e)=> updateProjectNumber(e.target.value)}
-                                    placeholder="1205-S1-S03"
-                                />
-                                {(() => {
-                                    const v = (inputCardId||'').trim().replace(/[—–－]/g,'-').toUpperCase();
-                                    const segs = v.split('-').filter(Boolean);
-                                    const hasStage = segs.some(x => /^S\\d+$/i.test(x));
-                                    const hasType = segs.some(x => /^[SP]\\d+$/i.test(x));
-                                    const validLen = (segs.length===3 && hasStage) || (segs.length===4 && hasStage);
-                                    return !(validLen && hasStage && (hasType || segs.length===3));
-                                })() && (
-                                    <div className="text-xs text-red-500">编号需 3-4 段，包含阶段（S1/S2…），可选产品/服务（P01/S01）。示例：ACME-PJT-S1-P01 或 1205-S2-S01</div>
-                                )}
                             </div>
 
                             <div className="flex flex-col gap-2">
@@ -1015,15 +827,8 @@
                                 <button onClick={actions.exportJSON} className="border border-gray-300 text-gray-700 py-2.5 rounded-lg hover:bg-gray-50 font-medium transition-colors flex items-center justify-center gap-2">
                                     <Icon name="download" size={16} /> 导出
                                 </button>
-                                <button onClick={() => {
-                                    if (parentProjectId) {
-                                        window.location.href = `project_detail.html?id=${parentProjectId}`;
-                                    } else {
-                                        window.location.href = 'projects.html';
-                                    }
-                                }} className="border border-gray-300 text-gray-700 py-2.5 rounded-lg hover:bg-gray-50 font-medium transition-colors flex items-center justify-center gap-2">
-                                    <Icon name={parentProjectId ? "corner-up-left" : "home"} size={16} /> 
-                                    {parentProjectId ? "返回项目" : "返回首页"}
+                                <button onClick={()=>window.location.href='projects.html'} className="border border-gray-300 text-gray-700 py-2.5 rounded-lg hover:bg-gray-50 font-medium transition-colors flex items-center justify-center gap-2">
+                                    <Icon name="home" size={16} /> 返回首页
                                 </button>
                             </div>
                         </div>
@@ -1035,7 +840,7 @@
                             backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='1'/%3E%3C/svg%3E")`
                         }}></div>
                         <div style={{ transform: 'scale(0.65)', transformOrigin: 'center', boxShadow: '0 50px 100px -20px rgba(0, 0, 0, 0.25)' }}>
-                            <ProjectCard data={parsedData} styles={styles} sectionConfigs={sectionConfigs} selectedSection={selectedSection} actions={actions} parentProjectName={parentProjectName} />
+                            <ProjectCard data={parsedData} styles={styles} sectionConfigs={sectionConfigs} selectedSection={selectedSection} actions={actions} />
                         </div>
                     </div>
 
@@ -1052,7 +857,8 @@
         };
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
-</body>
-</html>
+        root.render(
+            <ErrorBoundary>
+                <App />
+            </ErrorBoundary>
+        );

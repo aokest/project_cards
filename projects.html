@@ -10,6 +10,9 @@
     <style>
         body { font-family: 'Noto Sans SC', sans-serif; background-color: #f8fafc; }
         .card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: #f1f1f1; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -24,13 +27,16 @@
                     </div>
                     <div class="hidden md:flex ml-10 space-x-8">
                         <a href="projects.html" class="border-b-2 border-blue-500 text-gray-900 inline-flex items-center px-1 pt-1 text-sm font-medium">项目看板</a>
-                        <a href="index.html" class="border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 inline-flex items-center px-1 pt-1 text-sm font-medium">卡片列表 (旧版)</a>
                         <a href="project_timeline.html" class="border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 inline-flex items-center px-1 pt-1 text-sm font-medium">全局时间表</a>
                     </div>
                 </div>
                 <div class="flex items-center gap-3">
-                    <button onclick="openAIModal()" class="p-2 text-gray-400 hover:text-blue-600 transition-colors" title="AI 设置"><i data-lucide="bot" class="w-5 h-5"></i></button>
-                    <button onclick="window.location.reload()" class="p-2 text-gray-400 hover:text-gray-500"><i data-lucide="refresh-cw" class="w-5 h-5"></i></button>
+                    <button onclick="openAIConfig()" class="text-gray-500 hover:text-gray-700 p-2 rounded-lg transition-colors" title="AI配置">
+                        <i data-lucide="bot" class="w-5 h-5"></i>
+                    </button>
+                    <button onclick="window.location.href='cardv8.html'" class="bg-indigo-50 text-indigo-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-100 transition-colors flex items-center gap-2 border border-indigo-100">
+                        <i data-lucide="file-plus" class="w-4 h-4"></i> 新建卡片
+                    </button>
                     <button onclick="openCreateModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-sm shadow-blue-200">
                         <i data-lucide="plus" class="w-4 h-4"></i> 新建项目
                     </button>
@@ -70,304 +76,487 @@
             </div>
         </div>
 
-        <!-- Filter & Search -->
-        <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-            <div class="relative w-full sm:w-96">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <i data-lucide="search" class="text-gray-400 w-5 h-5"></i>
+        <!-- Filter & Search Bar (Simplified) -->
+        <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm mb-6">
+            <div class="flex flex-wrap items-center justify-between gap-4">
+                <div class="flex items-center gap-4 flex-1">
+                    <div class="relative flex-1 max-w-lg">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i data-lucide="search" class="text-gray-400 w-5 h-5"></i>
+                        </div>
+                        <input type="text" id="search-input" oninput="renderProjects()" class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 transition-all" placeholder="搜索项目名称、编号、客户...">
+                    </div>
+                    <select id="status-filter" onchange="renderProjects()" class="pl-3 pr-10 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">
+                        <option value="all">全部状态</option>
+                        <option value="active">进行中</option>
+                        <option value="planning">规划中</option>
+                        <option value="completed">已完成</option>
+                    </select>
                 </div>
-                <input type="text" id="search-input" class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150 ease-in-out" placeholder="搜索项目名称、编号、客户...">
-            </div>
-            <div class="flex gap-2">
-                <select id="status-filter" class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-lg">
-                    <option value="all">全部状态</option>
-                    <option value="active">进行中</option>
-                    <option value="planning">规划中</option>
-                    <option value="completed">已完成</option>
-                </select>
+                <div class="flex items-center gap-2 text-sm text-gray-600">
+                    <span id="loading-status">正在加载数据...</span>
+                </div>
             </div>
         </div>
 
         <!-- Project Grid -->
         <div id="project-grid" class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             <!-- Projects will be rendered here -->
-            <div class="col-span-full text-center py-20 text-gray-400 flex flex-col items-center">
-                <i data-lucide="loader-2" class="w-8 h-8 animate-spin mb-2"></i>
-                加载数据中...
-            </div>
         </div>
     </main>
 
-    <!-- Create Project Modal -->
-    <div id="create-modal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center backdrop-blur-sm">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 transform transition-all scale-100">
-            <div class="flex justify-between items-center mb-6 border-b pb-4">
-                <h3 class="text-xl font-bold text-gray-900">新建项目</h3>
-                <button onclick="closeCreateModal()" class="text-gray-400 hover:text-gray-500"><i data-lucide="x" class="w-6 h-6"></i></button>
+    <!-- AI Config Modal -->
+    <div id="ai-modal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md transform transition-all">
+            <div class="flex justify-between items-center p-6 border-b border-gray-100">
+                <h3 class="text-xl font-bold text-gray-900">AI 配置</h3>
+                <button onclick="closeAIConfig()" class="text-gray-400 hover:text-gray-500 transition-colors">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
             </div>
-            <form id="create-form" class="space-y-4">
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">客户代号 (Prefix)</label>
-                        <input type="text" name="customerNo" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm uppercase" placeholder="例如 1205">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">项目代号</label>
-                        <input type="text" name="projectNo" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm uppercase" placeholder="例如 PROJ01">
-                    </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">API Key</label>
+                    <input type="password" id="ai-key" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2 border" placeholder="sk-...">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700">项目名称</label>
-                    <input type="text" name="name" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="请输入项目全称">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Base URL</label>
+                    <input type="text" id="ai-url" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2 border" placeholder="https://api.openai.com/v1">
                 </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">合同编号</label>
-                        <input type="text" name="contractNo" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="可选">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">预算 (万元)</label>
-                        <input type="number" name="budget" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="0">
-                    </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Model Name</label>
+                    <input type="text" id="ai-model" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2 border" placeholder="gpt-3.5-turbo">
                 </div>
-                <div class="flex justify-end gap-3 pt-4">
-                    <button type="button" onclick="closeCreateModal()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">取消</button>
-                    <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-lg shadow-blue-200">创建</button>
-                </div>
-            </form>
+            </div>
+            <div class="p-6 border-t border-gray-100 bg-gray-50 rounded-b-xl flex justify-end gap-3">
+                <button onclick="closeAIConfig()" class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">取消</button>
+                <button onclick="saveAIConfig()" class="px-4 py-2 bg-blue-600 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-blue-700">保存配置</button>
+            </div>
         </div>
     </div>
 
-    <!-- AI Config Modal -->
-    <div id="ai-modal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center backdrop-blur-sm">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6">
-            <div class="flex justify-between items-center mb-6 border-b pb-4">
-                <h3 class="text-xl font-bold text-gray-900 flex items-center gap-2">
-                    <i data-lucide="bot" class="text-blue-600"></i> AI 全局配置
-                </h3>
-                <button onclick="closeAIModal()" class="text-gray-400 hover:text-gray-500"><i data-lucide="x" class="w-6 h-6"></i></button>
+    <!-- Create Project Modal -->
+    <div id="create-modal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl transform transition-all">
+            <div class="flex justify-between items-center p-6 border-b border-gray-100">
+                <h3 class="text-xl font-bold text-gray-900">新建项目</h3>
+                <button onclick="closeCreateModal()" class="text-gray-400 hover:text-gray-500 transition-colors">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
             </div>
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">API URL</label>
-                    <input type="text" id="ai-url" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm" placeholder="https://api.openai.com/v1">
+            <div class="p-6 space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">项目名称 *</label>
+                        <input type="text" id="p-name" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2 border">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">项目编号 *</label>
+                        <input type="text" id="p-no" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2 border" placeholder="PROJ-2024-001">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">客户名称</label>
+                        <input type="text" id="p-customer" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2 border">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">客户编号</label>
+                        <input type="text" id="p-customer-no" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2 border" placeholder="CUST-001">
+                    </div>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700">API Key</label>
-                    <input type="password" id="ai-key" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm" placeholder="sk-...">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">项目描述</label>
+                    <textarea id="p-desc" rows="3" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2 border"></textarea>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Model Name</label>
-                    <input type="text" id="ai-model" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm" placeholder="gpt-3.5-turbo">
+                <div class="grid grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">预算收入 (元)</label>
+                        <input type="number" id="p-budget" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2 border">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">状态</label>
+                        <select id="p-status" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2 border">
+                            <option value="planning">规划中</option>
+                            <option value="active" selected>进行中</option>
+                            <option value="completed">已完成</option>
+                            <option value="suspended">暂停</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">负责人</label>
+                        <input type="text" id="p-manager" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2 border">
+                    </div>
                 </div>
             </div>
-            <div class="flex justify-end gap-3 pt-6">
-                <button onclick="closeAIModal()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">取消</button>
-                <button onclick="saveAIConfig()" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm">保存配置</button>
+            <div class="p-6 border-t border-gray-100 bg-gray-50 rounded-b-xl flex justify-end gap-3">
+                <button onclick="closeCreateModal()" class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">取消</button>
+                <button onclick="submitCreateProject()" class="px-4 py-2 bg-blue-600 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">创建项目</button>
             </div>
         </div>
     </div>
 
     <script>
-        lucide.createIcons();
-
-        // Data Store
+        // Core Data
         let projects = [];
         let cards = [];
 
-        // Fetch Data
+        // Initialization
+        document.addEventListener('DOMContentLoaded', () => {
+            loadData();
+            lucide.createIcons();
+        });
+
+        // Enhanced Data Loading with Status
         async function loadData() {
+            const statusEl = document.getElementById('loading-status');
+            
             try {
-                const [pRes, cRes] = await Promise.all([
-                    fetch('/api/projects'),
-                    fetch('/api/cards')
-                ]);
+                statusEl.textContent = '正在连接服务器...';
+                
+                // Fetch Projects
+                const pRes = await fetch('/api/projects');
+                if (!pRes.ok) throw new Error('Projects API failed');
                 projects = await pRes.json();
+                
+                statusEl.textContent = '正在加载卡片数据...';
+                
+                // Fetch Cards
+                const cRes = await fetch('/api/cards');
+                if (!cRes.ok) throw new Error('Cards API failed');
                 cards = await cRes.json();
+                
+                statusEl.textContent = `已加载 ${projects.length} 个项目，${cards.length} 张卡片`;
+                
                 renderProjects();
                 updateStats();
-            } catch (e) {
-                console.error("Failed to load data", e);
-                document.getElementById('project-grid').innerHTML = `<div class="col-span-full text-center text-red-500">数据加载失败，请检查服务器</div>`;
+                lucide.createIcons();
+                
+            } catch (error) {
+                console.error("Failed to load data:", error);
+                statusEl.textContent = '数据加载失败';
+                statusEl.className = 'text-sm text-red-600';
+                
+                document.getElementById('project-grid').innerHTML = `
+                    <div class="col-span-full text-center py-10">
+                        <div class="text-red-500 mb-2">
+                            <i data-lucide="alert-circle" class="w-12 h-12 mx-auto"></i>
+                        </div>
+                        <h3 class="text-lg font-medium text-gray-900 mb-2">数据加载失败</h3>
+                        <p class="text-gray-500 mb-4">无法连接到后端服务，请检查服务器是否正常运行</p>
+                        <button onclick="loadData()" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">
+                            重新加载
+                        </button>
+                    </div>
+                `;
+                lucide.createIcons();
             }
         }
 
-        // Render Grid
+        // Render Projects Grid
         function renderProjects() {
             const grid = document.getElementById('project-grid');
-            const term = document.getElementById('search-input').value.toLowerCase();
-            
+            const search = document.getElementById('search-input').value.toLowerCase();
+            const status = document.getElementById('status-filter').value;
+
             const filtered = projects.filter(p => {
-                const searchStr = `${p.meta.name} ${p.meta.projectNo} ${p.meta.customerNo} ${p.meta.contractNo}`.toLowerCase();
-                return searchStr.includes(term);
+                const matchSearch = (p.meta?.name || '').toLowerCase().includes(search) || 
+                                  (p.meta?.projectNo || '').toLowerCase().includes(search) ||
+                                  (p.meta?.customer || '').toLowerCase().includes(search);
+                const matchStatus = status === 'all' || p.meta?.status === status;
+                return matchSearch && matchStatus;
             });
 
             if (filtered.length === 0) {
-                grid.innerHTML = `<div class="col-span-full text-center py-20 text-gray-400">暂无项目，请点击右上角新建</div>`;
-                return;
-            }
-
-            grid.innerHTML = filtered.map(p => {
-                // Find associated cards count
-                const prefix = `${p.meta.customerNo}-${p.meta.projectNo}`;
-                const relatedCards = cards.filter(c => (c.cardId || '').startsWith(prefix));
-                const progress = relatedCards.length > 0 ? Math.min(100, relatedCards.length * 20) : 0; // Fake progress logic
-
-                return `
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 card-hover transition-all cursor-pointer relative group" onclick="window.location.href='project_detail.html?id=${p.id}'">
-                    <div class="flex justify-between items-start mb-4">
-                        <div>
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mb-2">
-                                ${p.meta.customerNo}
-                            </span>
-                            <h3 class="text-lg font-bold text-gray-900 line-clamp-1 group-hover:text-blue-600 transition-colors">${p.meta.name}</h3>
-                            <p class="text-sm text-gray-500 font-mono mt-1">${p.meta.contractNo || '无合同编号'}</p>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <button onclick="event.stopPropagation(); deleteProject('${p.id}')" class="text-red-300 hover:text-red-500 p-1" title="删除项目">
-                                <i data-lucide="trash-2" class="w-4 h-4"></i>
-                            </button>
-                            <a href="project_detail.html?id=${p.id}" onclick="event.stopPropagation()" class="text-blue-600 hover:text-blue-800 font-medium text-sm flex items-center gap-1 group-hover:underline">
-                                详情 <i data-lucide="chevron-right" class="w-4 h-4"></i>
-                            </a>
-                        </div>
+                grid.innerHTML = `
+                    <div class="col-span-full flex flex-col items-center justify-center py-20 text-gray-400">
+                        <i data-lucide="folder-open" class="w-16 h-16 mb-4 text-gray-200"></i>
+                        <p class="text-lg font-medium">没有找到相关项目</p>
+                        <p class="text-sm mt-2">尝试调整搜索条件或新建一个项目</p>
                     </div>
-                    
-                    <div class="space-y-3">
-                        <div class="flex justify-between text-sm text-gray-600">
-                            <span>关联卡片</span>
-                            <span class="font-bold">${relatedCards.length}</span>
-                        </div>
-                        <div class="flex justify-between text-sm text-gray-600">
-                            <span>预算</span>
-                            <span class="font-bold">¥${(p.finance?.budgetIncome || 0).toLocaleString()}</span>
-                        </div>
-                        
-                        <div class="pt-2">
-                            <div class="flex justify-between text-xs text-gray-400 mb-1">
-                                <span>完成度估算</span>
-                                <span>${progress}%</span>
-                            </div>
-                            <div class="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
-                                <div class="bg-blue-500 h-1.5 rounded-full" style="width: ${progress}%"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="mt-4 pt-4 border-t border-gray-50 flex items-center gap-2 text-xs text-gray-400">
-                        <i data-lucide="users" class="w-3 h-3"></i>
-                        ${p.team?.sales || '未分配销售'}
-                    </div>
-                </div>
                 `;
-            }).join('');
-            
+            } else {
+                grid.innerHTML = filtered.map(p => createProjectCard(p)).join('');
+            }
             lucide.createIcons();
         }
 
+        function createProjectCard(p) {
+            const statusColors = {
+                'active': 'bg-green-100 text-green-800',
+                'planning': 'bg-blue-100 text-blue-800',
+                'completed': 'bg-gray-100 text-gray-800',
+                'suspended': 'bg-red-100 text-red-800'
+            };
+            const statusLabels = {
+                'active': '进行中',
+                'planning': '规划中',
+                'completed': '已完成',
+                'suspended': '暂停'
+            };
+
+            const budget = p.finance?.budgetIncome ? `¥${parseInt(p.finance.budgetIncome).toLocaleString()}` : '-';
+            const manager = p.meta?.manager || (p.team?.sales?.[0] || p.team?.product?.[0] || '未指定');
+            const displayStatus = statusLabels[p.meta.status] || p.meta.status || '未设置';
+            const displayStatusColor = statusColors[p.meta.status] || 'bg-gray-100 text-gray-800';
+
+            // Calculate progress (mock logic or based on cards)
+            const relatedCards = cards.filter(c => c.cardId && c.cardId.startsWith(`${p.meta.customerNo}-${p.meta.projectNo}`));
+            const cardCount = relatedCards.length;
+
+            return `
+                <div class="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all cursor-pointer group card-hover relative overflow-hidden" onclick="window.location.href='project_detail.html?id=${p.id}'">
+                    <div class="absolute top-0 left-0 w-1 h-full ${p.meta.status === 'active' ? 'bg-green-500' : 'bg-gray-300'}"></div>
+                    <div class="p-6">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 class="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-1">${p.meta.name}</h3>
+                                <p class="text-xs text-gray-500 font-mono mt-1">${p.meta.projectNo}</p>
+                            </div>
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[p.meta.status] || 'bg-gray-100 text-gray-800'}">
+                                ${statusLabels[p.meta.status] || p.meta.status}
+                            </span>
+                        </div>
+                        
+                        <p class="text-sm text-gray-600 mb-6 line-clamp-2 h-10">${p.meta.description || '暂无描述...'}</p>
+                        
+                        <div class="grid grid-cols-2 gap-4 text-sm border-t border-gray-100 pt-4">
+                            <div>
+                                <span class="block text-xs text-gray-400 mb-1">客户</span>
+                                <span class="font-medium text-gray-700 truncate block" title="${p.meta.customer || '-'}">${p.meta.customer || '-'}</span>
+                            </div>
+                            <div>
+                                <span class="block text-xs text-gray-400 mb-1">负责人</span>
+                                <div class="flex items-center gap-1">
+                                    <div class="w-4 h-4 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[10px] font-bold">
+                                        ${manager.charAt(0)}
+                                    </div>
+                                    <span class="font-medium text-gray-700 truncate" title="${manager}">${manager}</span>
+                                </div>
+                            </div>
+                            <div>
+                                <span class="block text-xs text-gray-400 mb-1">预算</span>
+                                <span class="font-medium text-gray-900">${budget}</span>
+                            </div>
+                            <div>
+                                <span class="block text-xs text-gray-400 mb-1">关联卡片</span>
+                                <span class="font-medium text-indigo-600 flex items-center gap-1">
+                                    <i data-lucide="layers" class="w-3 h-3"></i> ${cardCount}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="mt-4 pt-3 border-t border-gray-100 flex justify-end">
+                             <button onclick="event.stopPropagation(); openEditModal('${p.id}')" class="text-xs text-blue-600 hover:text-blue-800 font-medium px-2 py-1 rounded hover:bg-blue-50 transition-colors">
+                                编辑信息
+                             </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Stats
         function updateStats() {
             document.getElementById('stat-total').innerText = projects.length;
-            document.getElementById('stat-active').innerText = projects.length; // TODO: filter active
+            document.getElementById('stat-active').innerText = projects.filter(p => p.meta?.status === 'active').length;
             
-            const totalBudget = projects.reduce((acc, p) => acc + Number(p.finance?.budgetIncome || 0), 0);
-            document.getElementById('stat-budget').innerText = `¥${(totalBudget/10000).toFixed(1)}万`;
+            let totalBudget = 0;
+            projects.forEach(p => {
+                if (p.finance?.budgetIncome) totalBudget += parseFloat(p.finance.budgetIncome);
+            });
+            document.getElementById('stat-budget').innerText = `¥${(totalBudget/10000).toFixed(1)}w`;
             
-            // Count cards linked to any project
-            const linkedCards = cards.filter(c => projects.some(p => (c.cardId || '').startsWith(`${p.meta.customerNo}-${p.meta.projectNo}`)));
-            document.getElementById('stat-cards').innerText = linkedCards.length;
+            document.getElementById('stat-cards').innerText = cards.length;
         }
 
-        // Modal Logic
-        const modal = document.getElementById('create-modal');
-        function openCreateModal() { modal.classList.remove('hidden'); }
-        function closeCreateModal() { modal.classList.add('hidden'); }
-
-        // AI Config Logic
-        const aiModal = document.getElementById('ai-modal');
-        function openAIModal() { 
-            aiModal.classList.remove('hidden');
-            const config = JSON.parse(localStorage.getItem('project_cards_ai_config') || '{}');
-            document.getElementById('ai-url').value = config.baseUrl || 'https://api.openai.com/v1';
+        // AI Config Functions
+        function openAIConfig() {
+            const config = JSON.parse(localStorage.getItem('ai_config') || '{}');
             document.getElementById('ai-key').value = config.apiKey || '';
-            document.getElementById('ai-model').value = config.model || 'gpt-3.5-turbo';
+            document.getElementById('ai-url').value = config.baseUrl || '';
+            document.getElementById('ai-model').value = config.model || '';
+            document.getElementById('ai-modal').classList.remove('hidden');
         }
-        function closeAIModal() { aiModal.classList.add('hidden'); }
+
+        function closeAIConfig() {
+            document.getElementById('ai-modal').classList.add('hidden');
+        }
+
         function saveAIConfig() {
             const config = {
-                baseUrl: document.getElementById('ai-url').value,
                 apiKey: document.getElementById('ai-key').value,
+                baseUrl: document.getElementById('ai-url').value,
                 model: document.getElementById('ai-model').value
             };
-            localStorage.setItem('project_cards_ai_config', JSON.stringify(config));
-            closeAIModal();
-            alert('AI 配置已保存');
+            localStorage.setItem('ai_config', JSON.stringify(config));
+            closeAIConfig();
+            alert('AI配置已保存');
         }
 
-        // Create Project
-        document.getElementById('create-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const formData = new FormData(e.target);
+        // Edit Project Function
+        let currentEditProjectId = null;
+
+        function openEditModal(projectId) {
+            currentEditProjectId = projectId;
+            const p = projects.find(proj => proj.id === projectId);
+            if (!p) return;
+
+            // Fill form
+            document.getElementById('p-name').value = p.meta.name || '';
+            document.getElementById('p-no').value = p.meta.projectNo || '';
+            document.getElementById('p-customer').value = p.meta.customer || '';
+            document.getElementById('p-customer-no').value = p.meta.customerNo || '';
+            document.getElementById('p-desc').value = p.meta.description || '';
+            document.getElementById('p-status').value = p.meta.status || 'planning';
+            document.getElementById('p-manager').value = p.meta.manager || '';
+            document.getElementById('p-budget').value = p.finance?.budgetIncome || '';
+
+            // Change modal title and button
+            document.querySelector('#create-modal h3').textContent = '编辑项目';
+            const submitBtn = document.querySelector('#create-modal button[onclick="submitCreateProject()"]');
+            if(submitBtn) {
+                submitBtn.textContent = '保存变更';
+                submitBtn.onclick = submitEditProject;
+            } else {
+                 // Try finding by text if onclick matches
+                 const btns = document.querySelectorAll('#create-modal button');
+                 btns.forEach(b => {
+                     if(b.textContent.includes('创建项目')) {
+                         b.textContent = '保存变更';
+                         b.onclick = submitEditProject;
+                     }
+                 });
+            }
+
+            openCreateModal();
+        }
+
+        async function submitEditProject() {
+            if (!currentEditProjectId) return;
             
-            const newProject = {
-                id: crypto.randomUUID(),
-                meta: {
-                    customerNo: formData.get('customerNo').toUpperCase(),
-                    projectNo: formData.get('projectNo').toUpperCase(),
-                    name: formData.get('name'),
-                    contractNo: formData.get('contractNo')
-                },
-                team: { sales: '', service: '', product: '' },
-                finance: { budgetIncome: formData.get('budget') * 10000, budgetCost: 0, currency: 'CNY' },
-                timeline: { start: '', end: '' },
-                deliverables: [],
-                content: { goals: '', scope: '', analysis: '' },
-                createdAt: new Date().toISOString()
+            const pIndex = projects.findIndex(p => p.id === currentEditProjectId);
+            if (pIndex === -1) return;
+
+            const updatedMeta = {
+                ...projects[pIndex].meta,
+                name: document.getElementById('p-name').value,
+                projectNo: document.getElementById('p-no').value,
+                customer: document.getElementById('p-customer').value,
+                customerNo: document.getElementById('p-customer-no').value,
+                description: document.getElementById('p-desc').value,
+                status: document.getElementById('p-status').value,
+                manager: document.getElementById('p-manager').value,
             };
 
-            const updatedProjects = [...projects, newProject];
-            
+            const updatedFinance = {
+                ...projects[pIndex].finance,
+                budgetIncome: document.getElementById('p-budget').value
+            };
+
+            projects[pIndex] = {
+                ...projects[pIndex],
+                meta: updatedMeta,
+                finance: updatedFinance
+            };
+
+            // Reset Modal State
+            document.querySelector('#create-modal h3').textContent = '新建项目';
+            const submitBtn = document.querySelector('#create-modal button'); 
+            // We need to find the specific button again safely
+             const btns = document.querySelectorAll('#create-modal button');
+             btns.forEach(b => {
+                 if(b.textContent.includes('保存变更')) {
+                     b.textContent = '创建项目';
+                     b.onclick = submitCreateProject;
+                 }
+             });
+
+            currentEditProjectId = null;
+
+            // Save to server
             try {
                 await fetch('/api/projects', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(updatedProjects)
+                    body: JSON.stringify(projects)
                 });
                 closeCreateModal();
-                loadData(); // Refresh
-                e.target.reset();
-            } catch (err) {
-                alert('创建失败: ' + err.message);
-            }
-        });
-
-        // Search Listener
-        document.getElementById('search-input').addEventListener('input', renderProjects);
-
-        // Delete Project
-        async function deleteProject(id) {
-            if (!confirm('确定要删除这个项目吗？所有关联信息将丢失（卡片数据保留，但解除关联）。')) return;
-            
-            const newProjects = projects.filter(p => p.id !== id);
-            try {
-                const res = await fetch('/api/projects', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(newProjects)
-                });
-                if (res.ok) {
-                    projects = newProjects;
-                    renderProjects();
-                    updateStats();
-                } else {
-                    alert('删除失败');
-                }
-            } catch(e) {
-                alert('网络错误');
+                renderProjects();
+                updateStats();
+            } catch (e) {
+                alert('保存失败: ' + e.message);
             }
         }
 
-        // Init
-        loadData();
+        // Create Project Functions
+        function openCreateModal() {
+            if (!currentEditProjectId) {
+                // Clear form if opening for create
+                document.getElementById('p-name').value = '';
+                document.getElementById('p-no').value = '';
+                document.getElementById('p-customer').value = '';
+                document.getElementById('p-customer-no').value = '';
+                document.getElementById('p-desc').value = '';
+                document.getElementById('p-status').value = 'active';
+                document.getElementById('p-manager').value = '';
+                document.getElementById('p-budget').value = '';
+                
+                document.querySelector('#create-modal h3').textContent = '新建项目';
+                 const btns = document.querySelectorAll('#create-modal button');
+                 btns.forEach(b => {
+                     if(b.textContent.includes('保存变更')) {
+                         b.textContent = '创建项目';
+                         b.onclick = submitCreateProject;
+                     }
+                 });
+            }
+            document.getElementById('create-modal').classList.remove('hidden');
+        }
+
+        function closeCreateModal() {
+            document.getElementById('create-modal').classList.add('hidden');
+        }
+
+        async function submitCreateProject() {
+            const newProject = {
+                id: Date.now().toString(),
+                meta: {
+                    name: document.getElementById('p-name').value,
+                    projectNo: document.getElementById('p-no').value,
+                    customer: document.getElementById('p-customer').value,
+                    customerNo: document.getElementById('p-customer-no').value,
+                    description: document.getElementById('p-desc').value,
+                    status: document.getElementById('p-status').value,
+                    manager: document.getElementById('p-manager').value,
+                    startDate: new Date().toISOString().split('T')[0]
+                },
+                finance: {
+                    budgetIncome: document.getElementById('p-budget').value
+                },
+                milestones: []
+            };
+
+            if (!newProject.meta.name || !newProject.meta.projectNo) {
+                alert('请填写项目名称和编号');
+                return;
+            }
+
+            projects.push(newProject);
+            
+            // Save to server
+            try {
+                await fetch('/api/projects', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(projects)
+                });
+                closeCreateModal();
+                renderProjects();
+                updateStats();
+            } catch (e) {
+                alert('保存失败: ' + e.message);
+            }
+        }
     </script>
 </body>
 </html>

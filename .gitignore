@@ -1,4 +1,7 @@
 project_cards.json
+projects.json
+project_cards_backup*.json
+data/
 __pycache__/
 *.pyc
 .DS_Store
@@ -10,3 +13,4 @@ venv/
 *.swp
 config.json
 ai_config.json
+batch_update_ids.py
