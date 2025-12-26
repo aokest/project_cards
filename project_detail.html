@@ -56,17 +56,23 @@
                     </div>
                     <div class="grid grid-cols-2 gap-3">
                         <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase">客户名称</label>
+                            <input type="text" id="p-customer-name" class="mt-1 w-full p-2 border rounded text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-100 outline-none">
+                        </div>
+                        <div>
                             <label class="block text-xs font-bold text-gray-500 uppercase">客户代号</label>
                             <input type="text" id="p-cust" class="mt-1 w-full p-2 border rounded text-sm font-mono uppercase bg-white focus:ring-2 focus:ring-blue-100 outline-none">
                         </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs font-bold text-gray-500 uppercase">项目代号</label>
                             <input type="text" id="p-proj" class="mt-1 w-full p-2 border rounded text-sm font-mono uppercase bg-white focus:ring-2 focus:ring-blue-100 outline-none">
                         </div>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-500 uppercase">合同编号</label>
-                        <input type="text" id="p-contract" class="mt-1 w-full p-2 border rounded text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-100 outline-none">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase">合同编号</label>
+                            <input type="text" id="p-contract" class="mt-1 w-full p-2 border rounded text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-100 outline-none">
+                        </div>
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-500 uppercase">项目简介</label>
@@ -814,6 +820,7 @@
 
                 // Sync UI to State
                 currentProject.meta.name = document.getElementById('p-name').value;
+                currentProject.meta.customer = document.getElementById('p-customer-name').value;
                 currentProject.meta.customerNo = document.getElementById('p-cust').value;
                 currentProject.meta.projectNo = document.getElementById('p-proj').value;
                 currentProject.meta.contractNo = document.getElementById('p-contract').value;

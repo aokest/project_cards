@@ -1,19 +1,40 @@
 [
   {
-    "id": "PROJ-EXAMPLE-001",
+    "id": "sample-project-001",
     "meta": {
-      "name": "示例项目",
-      "projectNo": "EXAMPLE-001",
-      "customer": "示例客户",
-      "customerNo": "CUST-001",
-      "description": "这是一个示例项目描述。",
+      "customerNo": "CUST001",
+      "projectNo": "PROJ001",
+      "name": "示例企业数字化转型项目",
+      "contractNo": "CON-2024-001",
+      "description": "这是一个用于演示系统的示例项目。包含完整的元数据结构。",
       "status": "active",
       "manager": "张三",
-      "startDate": "2024-01-01"
+      "customer": "示例科技有限公司"
+    },
+    "team": {
+      "sales": ["李四", "王五"],
+      "service": ["赵六"],
+      "product": ["钱七"]
     },
     "finance": {
-      "budgetIncome": 1000000
+      "budgetIncome": 1000000,
+      "budgetCost": 400000,
+      "currency": "CNY",
+      "budgetMode": "auto_sum"
     },
-    "milestones": []
+    "timeline": {
+      "start": "2024-01-01",
+      "end": "2024-12-31"
+    },
+    "deliverables": [
+      { "name": "系统部署方案", "type": "标准" },
+      { "name": "定制化开发", "type": "定开" }
+    ],
+    "content": {
+      "goals": "实现企业管理流程数字化",
+      "scope": "全公司范围",
+      "analysis": "当前痛点分析..."
+    },
+    "createdAt": "2024-01-01T09:00:00.000Z"
   }
 ]

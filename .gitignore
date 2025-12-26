@@ -2,6 +2,7 @@ project_cards.json
 projects.json
 project_cards_backup*.json
 data/
+projects/
 __pycache__/
 *.pyc
 .DS_Store
@@ -9,8 +10,11 @@ venv/
 .env
 .idea/
 .vscode/
+.trae/
 *.log
 *.swp
 config.json
 ai_config.json
 batch_update_ids.py
+delete_ghost_card.py
+历史文档/
