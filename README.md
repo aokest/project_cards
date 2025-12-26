@@ -1,88 +1,86 @@
-# Project Cards & Timeline Generator
+# FlowCard-PM (项目卡片与甘特图生成器)
 
-这是一个基于 Web 的项目卡片及推进表生成器，旨在帮助项目经理快速创建标准化、美观的项目卡片，并自动生成项目推进时间表。
+![License](https://img.shields.io/badge/license-MIT-blue.svg) ![Version](https://img.shields.io/badge/version-v9.2-green.svg)
 
-## 功能特性
+**FlowCard-PM** 是一个极客风的轻量级项目管理工具，专注于“项目卡片”的可视化生成与全生命周期管理。它集成了**项目管理**、**甘特图自动生成**、**项目流程图**梳理以及 **AI 辅助润色**功能，旨在帮助技术团队和项目经理以最少的操作成本，输出标准化、美观的交付物。
 
-- **项目卡片编辑器** (`cardv8.html`)
-  - 现代化 UI，支持拖拽调整模块高度、自定义字体大小。
-  - 内置 AI 润色功能（支持 OpenAI 格式接口），支持前后对比与撤销。
-  - 支持 Markdown 文件批量导入。
-  - 数据自动同步到本地数据库。
-  - 导出为 JSON 或 Markdown。
-  - **安全配置**：API Key 等敏感配置可导出为本地 JSON 文件，不上传云端。
+> 关键词：项目卡片, 项目管理, 甘特图, 项目流程图, Project Cards, Gantt Chart, AI 辅助, 可视化管理
 
-- **项目列表** (`index.html`)
-  - 概览所有项目卡片。
-  - 支持启用/禁用卡片（控制是否显示在时间表中）。
-  - 支持 Grid 和 List 两种视图。
+## 🚀 核心特性
 
-- **项目推进表** (`project_timeline.html`)
-  - 自动根据卡片中的“项目周期”生成甘特图/时间轴。
-  - 支持手动微调时间，并同步回数据库。
+### 1. 极客风项目卡片 (Project Cards)
+- **所见即所得**：现代化 UI 编辑器 (`cardv8.html`)，支持拖拽调整布局、实时预览。
+- **AI 智能润色**：内置 AI 接口（支持 OpenAI/DeepSeek 等），一键优化项目描述，提升专业度。
+- **Markdown 友好**：支持 Markdown 文件批量导入/导出，完美融入技术文档流。
+- **标准化输出**：自动生成 16:9 标准比例卡片，适合汇报与大屏展示。
 
-## 快速开始
+### 2. 自动化甘特图 (Auto Gantt Chart)
+- **智能解析**：自动解析卡片中的“项目周期”文本（如“2025年1月-3月”），生成动态甘特图。
+- **全局/局部视图**：支持查看所有项目的全局时间表，或进入单项目详情页查看特定任务的推进表。
+- **交互式微调**：支持在时间轴上直接点击编辑，数据实时同步。
 
-### 1. 启动服务
+### 3. 多项目流程管理 (Project Flow)
+- **项目看板**：`projects.html` 提供全局视角，管理所有项目状态（进行中/规划中/已完成）。
+- **层级架构**：支持 **Project (项目) -> SubProject (子卡片)** 的两级管理架构，自动聚合预算与工时。
+- **数据安全**：所有敏感数据（API Key、项目信息）均存储在本地或通过 Docker 挂载，完全私有化部署。
 
-本项目使用 Python 内置服务器作为轻量级后端。
+## 🛠️ 快速开始
+
+### 方式一：Python 直接启动 (macOS/Linux/Windows)
+
+本项目使用 Python 内置服务器作为轻量级后端，无需复杂配置。
 
 ```bash
-# 确保已安装 Python 3
-python3 server.py
+# 1. 克隆仓库
+git clone https://github.com/your-repo/FlowCard-PM.git
+cd FlowCard-PM
+
+# 2. 启动服务 (默认端口 8000)
+python3 server.py 8000
 ```
 
-服务默认运行在 `http://localhost:18889`。
+访问：[http://localhost:8000/projects.html](http://localhost:8000/projects.html)
 
-### 2. 访问页面
+### 方式二：Docker 容器化部署
 
-- **首页列表**: [http://localhost:18889/index.html](http://localhost:18889/index.html)
-- **卡片编辑**: [http://localhost:18889/cardv8.html](http://localhost:18889/cardv8.html)
-- **推进表**: [http://localhost:18889/project_timeline.html](http://localhost:18889/project_timeline.html)
-
-## 数据存储
-
-- 本地数据存储在 `project_cards.json`（已被 `.gitignore` 忽略，不会提交远端）。
-- 测试/脱敏数据位于 `env/test/project_cards.json`（默认 `[]`），通过 `docker-compose.test.yml` 挂载到容器中。
-- 请定期备份本地 `project_cards.json`。
-
-## 配置管理
-
-- AI 配置（Base URL, API Key）默认保存在浏览器 `localStorage` 中。
-- 在“AI 设置”弹窗中，点击 **“导出配置”** 可将 Key 保存为本地 JSON 文件。
-- 换机或清除缓存后，点击 **“导入配置”** 即可一键恢复。
-
-## 目录结构
-
+```bash
+# 启动服务
+docker compose up -d
 ```
+
+访问：[http://localhost:8000/projects.html](http://localhost:8000/projects.html)
+
+> **注意**：测试环境（`docker-compose.test.yml`）默认挂载空数据文件，用于脱敏演示。
+
+## 📂 目录结构
+
+```text
 .
-├── cardv8.html          # 卡片编辑器核心代码
-├── index.html           # 项目列表页
-├── project_timeline.html # 时间轴视图
-├── server.py            # 轻量级 Python 后端
-├── docs/                # 项目文档（含开发规范）
-│   ├── 00-项目说明.md
-│   ├── 01-开发规范.md
-├── projects/            # 示例或导入的 Markdown 文件
-├── project_cards.json   # 本地数据（自动生成，不提交）
-├── env/test/project_cards.json # 测试/脱敏数据（空）
-├── docker-compose.test.yml     # 测试环境 Compose（端口 18898）
-└── .gitignore           # Git 忽略配置
+├── projects.html          # [入口] 项目看板与全局设置
+├── project_detail.html    # 项目详情与卡片聚合页
+├── cardv8.html            # 核心卡片编辑器
+├── project_timeline.html  # 甘特图/时间表视图
+├── server.py              # 轻量级 Python API 网关
+├── data/                  # 数据存储目录 (JSON)
+│   ├── projects.json      # 项目元数据
+│   ├── project_cards.json # 卡片数据
+│   └── ...
+├── docs/                  # 开发文档与规范
+└── projects/              # 原始 Markdown 归档
 ```
 
-## 测试环境（脱敏）
+## 🔐 数据安全与隐私
 
-启动一个不含真实数据的测试环境：
+- **本地优先**：所有业务数据默认存储在本地 JSON 文件中 (`project_cards.json`, `projects.json`)。
+- **Git 脱敏**：`.gitignore` 已配置忽略真实数据文件，仓库中仅包含 `*.example.json` 示例文件。
+- **AI 配置**：API Key 等敏感信息仅保存在浏览器 LocalStorage 或本地导出文件中，绝不上传云端。
 
-```bash
-docker compose -f docker-compose.test.yml up -d
-# 访问 http://localhost:18898/
-```
+## 🤝 贡献与扩展
 
-该环境会挂载 `env/test/project_cards.json`（默认空数组），用于功能验证与对外同步代码前的脱敏测试。
+欢迎提交 Issue 或 PR！
+- 前端：原生 HTML/JS + Tailwind CSS + React (CDN)，无需构建，修改即生效。
+- 后端：Python `http.server` 扩展，易于迁移至 Flask/FastAPI。
 
-## 扩展开发
+## 📄 License
 
-如需进行二次开发或接入 CRM/后端系统：
-1. 修改 `server.py` 以连接真实数据库。
-2. 前端页面均为原生 HTML/JS/React(CDN)，无需构建步骤，直接修改即可生效。
+MIT License

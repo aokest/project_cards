@@ -488,6 +488,48 @@
             const [aiConfig, setAiConfig] = useState({ baseUrl: 'https://api.openai.com/v1', apiKey: '', model: 'gpt-3.5-turbo' });
             const [isAILoading, setIsAILoading] = useState(false);
             
+            // Unsaved Changes Logic
+            const [isDirty, setIsDirty] = useState(false);
+            const isInitialized = useRef(false);
+
+            useEffect(() => {
+                if (isInitialized.current) {
+                    setIsDirty(true);
+                }
+            }, [rawText, styles, sectionConfigs]);
+            
+            // Mark initialized after data load (approximate)
+            useEffect(() => {
+               // We set this to true after initial data load is done in the other effect
+               // But since we have multiple load points, let's just use a timeout or assume 
+               // any change after mount + 1s is user action? 
+               // Better: In the loadData effect, set isInitialized.current = true at the end.
+               // Actually, let's just set it to true after 1 second to avoid initial render triggers
+               const t = setTimeout(() => isInitialized.current = true, 1000);
+               return () => clearTimeout(t);
+            }, []);
+
+            useEffect(() => {
+                const handler = (e) => {
+                    if (isDirty) {
+                        e.preventDefault();
+                        e.returnValue = '';
+                    }
+                };
+                window.addEventListener('beforeunload', handler);
+                return () => window.removeEventListener('beforeunload', handler);
+            }, [isDirty]);
+
+            const handleNavigate = (url) => {
+                if (isDirty) {
+                    if (confirm('您有未保存的更改，确定要离开吗？')) {
+                        window.location.href = url;
+                    }
+                } else {
+                    window.location.href = url;
+                }
+            };
+            
             // New: Card List for Selection
             const [cardList, setCardList] = useState([]);
             // Track the original ID of the currently edited card to support renaming/overwriting
@@ -619,6 +661,7 @@
                 },
                 save: () => {
                     localStorage.setItem(STORAGE_KEY, JSON.stringify({ rawText, styles, sectionConfigs, aiConfig }));
+                    setIsDirty(false);
                     alert('已保存项目数据');
                 },
                 exportJSON: () => {
@@ -730,6 +773,7 @@
                             newUrl.searchParams.set('id', cardObj.cardId || cardObj.id);
                             window.history.pushState({}, '', newUrl);
                             
+                            setIsDirty(false);
                             alert('已同步至数据库/时间表！');
                         } else {
                             throw new Error('Server returned ' + saveRes.status);
@@ -1017,9 +1061,9 @@
                                 </button>
                                 <button onClick={() => {
                                     if (parentProjectId) {
-                                        window.location.href = `project_detail.html?id=${parentProjectId}`;
+                                        handleNavigate(`project_detail.html?id=${parentProjectId}`);
                                     } else {
-                                        window.location.href = 'projects.html';
+                                        handleNavigate('projects.html');
                                     }
                                 }} className="border border-gray-300 text-gray-700 py-2.5 rounded-lg hover:bg-gray-50 font-medium transition-colors flex items-center justify-center gap-2">
                                     <Icon name={parentProjectId ? "corner-up-left" : "home"} size={16} /> 

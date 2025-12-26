@@ -15,7 +15,7 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
                 <div class="flex items-center gap-4">
-                    <a href="projects.html" class="text-gray-500 hover:text-gray-900 flex items-center gap-1" title="返回项目看板">
+                    <a href="#" onclick="navigateTo('projects.html'); return false;" class="text-gray-500 hover:text-gray-900 flex items-center gap-1" title="返回项目看板">
                         <i data-lucide="layout-dashboard" class="w-5 h-5"></i> 看板
                     </a>
                     <div class="h-6 w-px bg-gray-200"></div>
@@ -307,6 +307,7 @@
     <script>
         // Global State
         let currentProject = null;
+        let initialProjectState = null; // For dirty check
         let allProjects = [];
         let allCards = [];
         let catalog = []; // Standard Catalog
@@ -331,6 +332,9 @@
                 currentProject = allProjects.find(p => p.id === projectId);
                 if (!currentProject) throw new Error('未找到项目');
                 
+                // Deep Copy for initial state
+                initialProjectState = JSON.parse(JSON.stringify(currentProject));
+
                 renderMeta();
                 renderCards();
                 lucide.createIcons();
@@ -338,6 +342,46 @@
                 alert(e.message);
             }
         }
+
+        // Dirty Check Logic
+        function hasUnsavedChanges() {
+            if (!currentProject || !initialProjectState) return false;
+            
+            // Sync current UI values to object before checking
+            // Note: We need to do this temporarily or just compare fields that are bound
+            // Actually, updateProjectStateFromUI() should be called, but let's just do a quick comparison of fields we care about
+            
+            const currentUIState = JSON.parse(JSON.stringify(currentProject));
+            // Update fields from inputs
+            if(document.getElementById('p-name')) currentUIState.meta.name = document.getElementById('p-name').value;
+            if(document.getElementById('p-cust')) currentUIState.meta.customerNo = document.getElementById('p-cust').value;
+            if(document.getElementById('p-proj')) currentUIState.meta.projectNo = document.getElementById('p-proj').value;
+            if(document.getElementById('p-contract')) currentUIState.meta.contractNo = document.getElementById('p-contract').value;
+            if(document.getElementById('p-desc')) currentUIState.meta.description = document.getElementById('p-desc').value;
+            if(document.getElementById('f-income')) currentUIState.finance.budgetIncome = Number(document.getElementById('f-income').value);
+            if(document.getElementById('f-cost')) currentUIState.finance.budgetCost = Number(document.getElementById('f-cost').value);
+
+            return JSON.stringify(currentUIState) !== JSON.stringify(initialProjectState);
+        }
+
+        window.addEventListener('beforeunload', (e) => {
+            if (hasUnsavedChanges()) {
+                e.preventDefault();
+                e.returnValue = '您有未保存的更改，确定要离开吗？';
+            }
+        });
+
+        // Intercept Links
+        function navigateTo(url) {
+            if (hasUnsavedChanges()) {
+                if (confirm('您有未保存的更改，确定要离开吗？')) {
+                    window.location.href = url;
+                }
+            } else {
+                window.location.href = url;
+            }
+        }
+
 
         /**
          * 切换视图模式
@@ -845,6 +889,9 @@
                 // Update Nav Title Immediately
                 document.getElementById('nav-title').innerText = currentProject.meta.name;
                 document.title = `${currentProject.meta.name} - 详情`;
+
+                // Reset Dirty State
+                initialProjectState = JSON.parse(JSON.stringify(currentProject));
                 
                 if (true) { // Assuming success if no error thrown
                     // Success feedback
@@ -1178,7 +1225,12 @@
         }
 
         function viewTimeline() {
-            window.location.href = `project_timeline.html?id=${projectId}`;
+            let url = 'project_timeline.html';
+            if (currentProject && currentProject.meta) {
+                const prefix = `${currentProject.meta.customerNo}-${currentProject.meta.projectNo}`;
+                url = `project_timeline.html?projectPrefix=${encodeURIComponent(prefix)}`;
+            }
+            navigateTo(url);
         }
 
         function createNewCard() {
